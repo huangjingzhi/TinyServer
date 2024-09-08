@@ -2,9 +2,12 @@
 
 #include <iostream>
 using namespace std;
+
+#include "ConnectManage.h"
 int main()
 {
-    std::cout <<" good \n" << std::endl; 
+    ConnectManage conManager(8080);
+    conManager.init();
     return 0;
 
 }
