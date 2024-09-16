@@ -7,29 +7,39 @@
 #include <unistd.h>
 #include <iostream>
 #include <string.h>
-
-#include <iostream>
 #include "ConnectManage.h"
 using namespace std;
 
-
-
-ConnectManage::ConnectManage(int port): m_port(port), m_serverFd(-1)
+ConnectManage::ConnectManage(int port, int netIoworkerNumber): m_port(port), m_serverFd(-1),
+    m_netIoManage(netIoworkerNumber), m_isInit(false)
 {
 }
 
 ConnectManage::~ConnectManage()
 {
+    // 是否需要释放信号量，锁这些
+
+    close(this->m_serverFd);
 }
+void ConnectManage::setInit(bool isInit)
+{
+    std::unique_lock<std::mutex> lock(this->m_isInitMutex);
+    this->m_isInit = true;
+    this->m_isInitConVar.notify_all();
+}
+
 
 bool ConnectManage::init()
 {
+    this->m_netIoManage.Init();
     this->init_socket();
+
+    this->m_selfTHread = std::thread(ConnectManage::Run, this);
+    this->setInit(true);
 }
 
 bool ConnectManage::init_socket()
 {
-    
     // 创建侦听sock
     int serverFd = socket(AF_INET, SOCK_STREAM, 0);
     if (serverFd == -1) {
@@ -38,13 +48,13 @@ bool ConnectManage::init_socket()
     }
 
     m_serverFd = serverFd;
-    
+
     // 初始化服务器地址
     struct sockaddr_in sockAddr;
     sockAddr.sin_family = AF_INET;
     sockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    sockAddr.sin_port = this->m_port;
-    
+    sockAddr.sin_port = htons(this->m_port);
+
     if (bind(this->m_serverFd, (struct sockaddr *)&sockAddr, sizeof(sockAddr)) == -1) {
         // todo:log
         std::cout  << "bind error." << std::endl;
@@ -53,7 +63,6 @@ bool ConnectManage::init_socket()
         return false;
     }
 
-
     if (listen(this->m_serverFd, SOMAXCONN) == -1)
     {
         std::cout << "listen error." << std::endl;
@@ -61,6 +70,16 @@ bool ConnectManage::init_socket()
         return -1;
     }
     std::cout << "listen for :" << this->m_serverFd << " in port " << this->m_port << std::endl;
+}
+
+void ConnectManage::Run()
+{
+    {
+        std::unique_lock<std::mutex> lock(this->m_isInitMutex);
+        while (!this->m_isInit) {
+            this->m_isInitConVar.wait(lock);
+        }
+    }
 
     while (true) {
         struct sockaddr_in clientSock;
@@ -72,33 +91,12 @@ bool ConnectManage::init_socket()
             std::cout << "accept error" << std::endl;
             continue;
         }
-        
-        char buf[1024] = {0};
-        int retLen = recv(clientFd, buf, 1024, 0);
-        if (retLen == -1) {
-            // todo:log
-        }
-        if (retLen == 0) {
-            // close
-        }
-        if(retLen > 0) {
-            std::cout << "recv msg from fd=" << clientFd << ": "  << buf << std::endl;
-            
-            int sendRet = send(clientFd, buf, strlen(buf), 0);
-            if (sendRet == -1) {
-                // todo:log
-            }
-            if (sendRet != strlen(buf)) {
-                // todo:log
-                std::cout << "send error." << std::endl;
-            }
-            if (sendRet == strlen(buf)) {
-                std::cout << "send back msg to " << clientFd  <<": " << buf << std::endl; 
-            }
-        }
-        close(clientFd);
+        this->m_netIoManage.AddListenFd(clientFd);
     }
+}
 
-    close(this->m_serverFd);
-
+void ConnectManage::JoinThreads()
+{
+    this->m_selfTHread.join();
+    this->m_netIoManage.JoinThreads();
 }

@@ -19,6 +19,14 @@ set(SOURCES
     main.cpp
 )
 
+# 设置CMAKE_BUILD_TYPE为Debug
+set(CMAKE_BUILD_TYPE Debug)
+add_compile_options(-g)
+
+# set_target_properties(netserver PROPERTIES
+#                       COMPILE_FLAGS "-g"
+#                       LINK_FLAGS "-g")
+
 add_executable(netserver ${SOURCES})
 
 # 可选：定义安装目标、测试、外部依赖等
