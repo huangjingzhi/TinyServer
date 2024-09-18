@@ -10,15 +10,14 @@
 #include "ConnectManage.h"
 using namespace std;
 
-ConnectManage::ConnectManage(int port, int netIoworkerNumber): m_port(port), m_serverFd(-1),
-    m_netIoManage(netIoworkerNumber), m_isInit(false)
+ConnectManage::ConnectManage(int port, int netIoworkerNumber, int workerMaxFd): m_port(port), m_serverFd(-1),
+    m_netIoManage(netIoworkerNumber, workerMaxFd), m_isInit(false)
 {
 }
 
 ConnectManage::~ConnectManage()
 {
     // 是否需要释放信号量，锁这些
-
     close(this->m_serverFd);
 }
 void ConnectManage::setInit(bool isInit)
@@ -28,14 +27,14 @@ void ConnectManage::setInit(bool isInit)
     this->m_isInitConVar.notify_all();
 }
 
-
 bool ConnectManage::init()
 {
     this->m_netIoManage.Init();
     this->init_socket();
 
-    this->m_selfTHread = std::thread(ConnectManage::Run, this);
+    this->m_selfThread = std::thread(&ConnectManage::Run, this);
     this->setInit(true);
+    return true;
 }
 
 bool ConnectManage::init_socket()
@@ -70,6 +69,7 @@ bool ConnectManage::init_socket()
         return -1;
     }
     std::cout << "listen for :" << this->m_serverFd << " in port " << this->m_port << std::endl;
+    return true;
 }
 
 void ConnectManage::Run()
@@ -80,7 +80,7 @@ void ConnectManage::Run()
             this->m_isInitConVar.wait(lock);
         }
     }
-
+    std::cout << "meet init in run of ConnectManage." << std::endl; 
     while (true) {
         struct sockaddr_in clientSock;
         socklen_t clientLen = sizeof(clientSock);
@@ -91,12 +91,13 @@ void ConnectManage::Run()
             std::cout << "accept error" << std::endl;
             continue;
         }
+        std::cout << "get fd " << clientFd << std::endl;
         this->m_netIoManage.AddListenFd(clientFd);
     }
 }
 
 void ConnectManage::JoinThreads()
 {
-    this->m_selfTHread.join();
+    this->m_selfThread.join();
     this->m_netIoManage.JoinThreads();
 }

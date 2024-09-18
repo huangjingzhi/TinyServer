@@ -16,13 +16,20 @@ include_directories(${PROJECT_SOURCE_DIR}/server)
 
 set(SOURCES
     server/ConnectManage.cpp
+    server/NetIoManage.cpp
+    server/NetIoWorker.cpp
     main.cpp
 )
 
 # 设置CMAKE_BUILD_TYPE为Debug
 set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-g)
+add_compile_options(-std=gnu++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -g -Wall -O0 -Wno-unused-variable -pthread")
 
+
+# add_compile_options(-lpthread)
+# add_compile_options(-Wl,--no-as-needed)
 # set_target_properties(netserver PROPERTIES
 #                       COMPILE_FLAGS "-g"
 #                       LINK_FLAGS "-g")

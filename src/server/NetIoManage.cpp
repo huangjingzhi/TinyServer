@@ -3,8 +3,9 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include  <unistd.h>
 
-NetIoManage::NetIoManage(int workerNumber): m_netIOWorkers(workerNumber),
+NetIoManage::NetIoManage(int workerNumber, int workerMaxFd): m_netIOWorkers(workerNumber, NetIoWorker(workerMaxFd)),
     m_netIOWorkerThs(workerNumber),
     m_nextWorkerIndex(0)
 {
@@ -18,10 +19,10 @@ NetIoManage::~NetIoManage()
 void NetIoManage::Init()
 {
     for (int i = 0; i < this->m_netIOWorkers.size(); i++) {
-        this->m_netIOWorkerThs[i] = std::thread(NetIoWorker::Working, &m_netIOWorkers[i]); // 是否应该放在NetIoWorker里面进行创建线程
+        this->m_netIOWorkerThs[i] = std::thread(&NetIoWorker::Working, &m_netIOWorkers[i]); // 是否应该放在NetIoWorker里面进行创建线程
     }
-    this->m_selfThread = std::thread(NetIoManage::Run, this);
-    
+    this->m_selfThread = std::thread(&NetIoManage::Run, this);
+
 }
 
 void NetIoManage::Run()
@@ -34,7 +35,7 @@ void NetIoManage::Run()
                 this->m_needHandleFdsConVar.wait(lock);
             }
             int fd = this->m_needHandleFds.back(); // todo: 这里需要设计处理顺序，数据结构应该使用对应合适的
-            if (this->TryAddListenFd(fd)) {
+            if (this->TryAddListenFd(fd)) { // 如果return false 这里会一直循环，可以怎么优化？
                 this->m_needHandleFds.pop_back();
                 continue;
             }
@@ -58,6 +59,7 @@ bool NetIoManage::TryAddListenFd(int fd)
 void NetIoManage::AddListenFd(int fd)
 {   
     if(this->TryAddListenFd(fd)) {
+        std::cout << "add fd to " << fd << std::endl;
         return;
     }
     this->AddNeedHandleFds(fd);
@@ -68,6 +70,7 @@ void NetIoManage::AddNeedHandleFds(int fd)
     std::unique_lock<std::mutex> lock(this->m_needHandleFdsMutex);
     this->m_needHandleFds.push_back(fd);
     this->m_needHandleFdsConVar.notify_one();
+    std::cout << "put fd=" << fd << " into next handle list " << std::endl;
 }
 
 void NetIoManage::RemoveNeedHandleFds(int fd)
@@ -83,5 +86,4 @@ void NetIoManage::JoinThreads()
     for (auto &th : this->m_netIOWorkerThs) {
         th.join();
     }
-
 }

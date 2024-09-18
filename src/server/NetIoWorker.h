@@ -16,6 +16,7 @@ private:
 
 public:
     NetIoWorker(int maxFds);
+    NetIoWorker(const NetIoWorker &netIoWorker);
     ~NetIoWorker();
     bool AddListen(int fd); 
     void Working();

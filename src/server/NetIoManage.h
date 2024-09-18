@@ -22,7 +22,7 @@ private:
     void RemoveNeedHandleFds(int fd);
     bool TryAddListenFd(int fd);
 public:
-    NetIoManage(int workerNumber);
+    NetIoManage(int workerNumber, int workerMaxFd);
     ~NetIoManage();
     void Init();
     void Run();

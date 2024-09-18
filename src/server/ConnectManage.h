@@ -12,7 +12,7 @@ private:
     /* data */
     int m_port;
     int m_serverFd;
-    std::thread m_selfTHread;
+    std::thread m_selfThread;
     NetIoManage m_netIoManage;
     
     bool m_isInit;
@@ -24,7 +24,7 @@ private:
     void setInit(bool isInit);
 
 public:
-    ConnectManage(int port, int netIoworkerNumber);
+    ConnectManage(int port, int netIoworkerNumber, int workerMaxFd);
     ~ConnectManage();
     bool init();
     void Run();
