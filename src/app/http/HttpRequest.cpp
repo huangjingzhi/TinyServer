@@ -161,3 +161,7 @@ bool HttpRequest::GetPost(const std::string &key, std::string &value) {
     value = m_post[key];
     return true;
 }
+
+bool HttpRequest::IsFinshed() {
+    return m_parseState == HTTPPARSE_FINISH;
+}

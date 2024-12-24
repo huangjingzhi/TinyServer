@@ -12,6 +12,7 @@ class App
 {
 private:
 public:
+    App();
     virtual ~App();
     virtual void Update(Communicator *communicator);
 };

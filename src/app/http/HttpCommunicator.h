@@ -13,6 +13,7 @@ class HttpCommunicator : public Communicator
     HttpRequest m_httpRequest;
     HttpResponse m_httpResponse;
     App *m_app;
+    std::string m_sendBuf;
     void HandleRequest();
 public:
     HttpCommunicator(int fd, App *app=nullptr);

@@ -15,16 +15,17 @@ set(CMAKE_CXX_STANDARD 11)
 include_directories(${PROJECT_SOURCE_DIR}/server)
 include_directories(${PROJECT_SOURCE_DIR}/commom)
 include_directories(${PROJECT_SOURCE_DIR}/app)
+include_directories(${PROJECT_SOURCE_DIR}/app/http)
+
+file(GLOB_RECURSE SRC_ALL_CPP_BASE
+    ${PROJECT_SOURCE_DIR}/server/*.cpp
+    ${PROJECT_SOURCE_DIR}/commom/*.cpp
+    ${PROJECT_SOURCE_DIR}/app/*.cpp
+    ${PROJECT_SOURCE_DIR}/app/http/*.cpp
+)
 
 set(SOURCES
-    app/TlvCommunicator.cpp
-    commom/Msg.cpp
-    commom/RawMsgManager.cpp
-    server/Communicator.cpp
-    server/ConnectManage.cpp
-    server/Logger.cpp
-    server/NetIoManage.cpp
-    server/NetIoWorker.cpp
+    ${SRC_ALL_CPP_BASE}
     mainhttpserver.cpp
     maintlvmsg.cpp
 )

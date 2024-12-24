@@ -1,7 +1,7 @@
 #include "App.h"
 
 
-App::App(/* args */)
+App::App()
 {
 }
 

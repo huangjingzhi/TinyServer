@@ -54,6 +54,7 @@ public:
     std::string GetMethod();
     bool GetHead(const std::string &key, std::string &value);
     bool GetPost(const std::string &key, std::string &value);
+    bool IsFinshed();
 };
 
 

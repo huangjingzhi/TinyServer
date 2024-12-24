@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-TlvCommunicator::TlvCommunicator(int fd, App *app=nullptr) : Communicator(fd), m_app(app)
+TlvCommunicator::TlvCommunicator(int fd, App *app) : Communicator(fd), m_app(app)
 {
 }
 
