@@ -2,22 +2,29 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include "Communicator.h"
+
+#ifndef NETWORKER_H
+#define NETWORKER_H
 
 class NetIoWorker
 {
 private:
-    /* data */
-    std::vector<int> m_listenFds;
+    std::vector<Communicator *> m_listenFds;
     std::mutex m_listenFdsMutex;
     int m_epollFd;
     bool m_isWorking;
     int M_MAX_FDS;
 
-
+    void DestroyCommunicator(Communicator *communicator);
+    bool SetFdBlocking(int fd, bool isBlocking);
 public:
     NetIoWorker(int maxFds);
     NetIoWorker(const NetIoWorker &netIoWorker);
     ~NetIoWorker();
-    bool AddListen(int fd); 
+    bool AddListen(Communicator *communicator); // TODO: 此处可以使用移动构造函数处理、
+    void RemoveListenFd(Communicator *communicator);
     void Working();
 };
+
+#endif

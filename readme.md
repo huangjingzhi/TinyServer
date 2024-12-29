@@ -1,7 +1,12 @@
 
 
 ### make
+```shell
+cd build
+cmake ../src
 
+
+```
 
 
 
