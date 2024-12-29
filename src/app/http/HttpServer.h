@@ -15,6 +15,9 @@
 
 class HttpServer: public App
 {
+    int m_port;
+    int m_netIoworkerNumber;
+    int m_workerMaxFd;
     std::unique_ptr<ConnectManage<HttpCommunicator>> m_httpConnectManager;
     HttpServerInfo m_httpServerInfo;
 public:
@@ -23,6 +26,7 @@ public:
     void Start();
     void InitStaticInfo(const HttpServerInfo &httpServerInfo);
     virtual void Update(Communicator *communicator) override;
+    void JoinThreads();
 };
 
 #endif

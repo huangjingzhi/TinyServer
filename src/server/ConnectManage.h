@@ -77,6 +77,13 @@ bool ConnectManage<T>::InitListenSocket()
 
     m_serverFd = serverFd;
 
+    int opt = 1;
+    if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        std::cerr << "Failed to set SO_REUSEADDR" << std::endl;
+        close(serverFd);
+        return -1;
+    }
+
     // 初始化服务器地址
     struct sockaddr_in sockAddr;
     sockAddr.sin_family = AF_INET;
@@ -137,7 +144,7 @@ void ConnectManage<T>::Run()
             continue;
         }
         std::cout << "get fd " << clientFd << "." << std::endl;
-        T *t = new T(clientFd);
+        T *t = new T(clientFd, this->m_app);
         std::cout << "[debug] " << "get communicate " << clientFd << " " << t << std::endl;  
         this->m_netIoManage.AddListenFd(t);
     }

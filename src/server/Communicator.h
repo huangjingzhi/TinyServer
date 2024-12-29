@@ -14,6 +14,7 @@ class Communicator
 {
 protected:
     int m_fd;
+    void AddEpollEvent(int epollFd, int event);
 public:
     Communicator(int fd);
     virtual ~Communicator();

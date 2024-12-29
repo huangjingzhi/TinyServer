@@ -1,6 +1,7 @@
 #include "HttpServer.h"
 
 HttpServer::HttpServer(int port, int netIoworkerNumber, int workerMaxFd):
+    m_port(port),m_netIoworkerNumber(netIoworkerNumber),m_workerMaxFd(workerMaxFd),
     m_httpConnectManager(nullptr)
 {
 
@@ -17,9 +18,9 @@ void HttpServer::InitStaticInfo(const HttpServerInfo &httpServerInfo)
 
 void HttpServer::Start()
 {
-    this->m_httpConnectManager.reset(new ConnectManage<HttpCommunicator>(8080, 1, 1024, this));
+    this->m_httpConnectManager.reset(new ConnectManage<HttpCommunicator>(
+        m_port, m_netIoworkerNumber, m_workerMaxFd, this));
     this->m_httpConnectManager->Init();
-    this->m_httpConnectManager->JoinThreads();
 }
 void HttpServer::Update(Communicator *communicator)
 {
@@ -32,11 +33,16 @@ void HttpServer::Update(Communicator *communicator)
     auto it = this->m_httpServerInfo.httpRequestHandles.find(request.GetPath());
     if (it == this->m_httpServerInfo.httpRequestHandles.end()) {
         response.SetStatus(HTTPRES_CODE_NOTFOUND);
-        response.SetBody("Not Found");
+        response.SetBody("Path " + request.GetPath() +  " Not Found");
         response.SetResType(HTTPRES_TYPE_HTML);
         response.SetReady(true);
         return;
     }
     it->second(&this->m_httpServerInfo, request, response);
     response.SetReady(true);
+}
+
+void HttpServer::JoinThreads()
+{
+    this->m_httpConnectManager->JoinThreads();
 }

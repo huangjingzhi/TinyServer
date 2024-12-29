@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/epoll.h>
+#include <errno.h>
 
 HttpCommunicator::HttpCommunicator(int fd, App *app) :
     Communicator(fd), m_app(app), m_sendBuf()
@@ -11,7 +13,6 @@ HttpCommunicator::HttpCommunicator(int fd, App *app) :
 
 HttpCommunicator::~HttpCommunicator()
 {
-
 }
 
 HttpRequest &HttpCommunicator::GetHttpRequest()
@@ -24,7 +25,6 @@ HttpResponse &HttpCommunicator::GetHttpResponse()
     return m_httpResponse;
 }
 
-
 void HttpCommunicator::HandleRequest()
 {
     if (m_app == nullptr) {
@@ -32,6 +32,11 @@ void HttpCommunicator::HandleRequest()
     }
     if (m_httpRequest.IsFinshed()) {
         m_app->Update(this);
+        // 尝试先发送数据
+        (void)HandleSocketWrite();
+        if (!m_sendBuf.empty()) {
+            this->AddEpollEvent(this->m_fd, EPOLLOUT | EPOLLIN | EPOLLERR);
+        }
         return; 
     }
 }
@@ -46,7 +51,7 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketRead()
         m_httpRequest.ParseRawMsg();
         HandleRequest();
     } else {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
             FreeMsg(msg);
             return CommunicatorHandleOK;
         }
@@ -67,7 +72,9 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
     }
     int ret = write(this->m_fd, m_sendBuf.c_str(), m_sendBuf.size());
     if (ret < 0) {
-        return CommunicatorHandleDelete;
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            return CommunicatorHandleDelete;
+        }
     }
     if (ret == m_sendBuf.size()) {
         m_sendBuf.clear();

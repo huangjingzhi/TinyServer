@@ -44,6 +44,7 @@ private:
     void ParseBody(const std::string &lineData);
     void ParsePost();
     void ParseFromUrlencoded();
+    size_t GetContentLength();
 public:
     HttpRequest();
     ~HttpRequest();

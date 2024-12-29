@@ -17,6 +17,7 @@ private:
     int M_MAX_FDS;
 
     void DestroyCommunicator(Communicator *communicator);
+    bool SetFdBlocking(int fd, bool isBlocking);
 public:
     NetIoWorker(int maxFds);
     NetIoWorker(const NetIoWorker &netIoWorker);

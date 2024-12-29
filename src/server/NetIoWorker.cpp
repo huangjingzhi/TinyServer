@@ -4,6 +4,7 @@
 #include  <unistd.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <fcntl.h>
 
 NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false)
 {
@@ -51,6 +52,12 @@ bool NetIoWorker::AddListen(Communicator *communicator)
     if (this->m_listenFds.size() >= this->M_MAX_FDS) {
         return false;
     }
+
+    if (this->SetFdBlocking(communicator->GetFd(), false) == false) {
+        std::cout << "set fd nonblocking error for fd=" << communicator->GetFd() << std::endl;
+        return false;
+    }
+
     epoll_event fdEvent = {0};
     fdEvent.data.fd = communicator->GetFd();
     fdEvent.events = EPOLLIN;
@@ -84,19 +91,19 @@ void NetIoWorker::Working()
     while (true) {
         epoll_event epoll_events[this->M_MAX_FDS];
         int timeOut = 1000; // TODO: timeout 应该从外层传入，这里的timeout的意义？
-        int ret = epoll_wait(this->m_epollFd, epoll_events, this->M_MAX_FDS, timeOut);
-        if (ret < 0) {
+        int retLen = epoll_wait(this->m_epollFd, epoll_events, this->M_MAX_FDS, timeOut);
+        if (retLen < 0) {
             if (errno == EINTR) {
                 continue;
             }
             std::cout << "error for  epoll_wait." << std::endl;
             return;
         }
-        if (ret == 0) {
+        if (retLen == 0) {
             continue;
         }
         
-        for (size_t i = 0; i < (size_t)ret; ++i)
+        for (size_t i = 0; i < (size_t)retLen; ++i)
         {
             CommunicatorHandleResult ret = CommunicatorHandleOK;
             int tmpFd = epoll_events[i].data.fd;
@@ -129,4 +136,21 @@ void NetIoWorker::Working()
             }
         }
     }
+}
+
+bool NetIoWorker::SetFdBlocking(int fd, bool isBlocking)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        return false;
+    }
+    if (isBlocking) {
+        flags &= ~O_NONBLOCK;
+    } else {
+        flags |= O_NONBLOCK;
+    }
+    if (fcntl(fd, F_SETFL, flags) == -1) {
+        return false;
+    }
+    return true;
 }

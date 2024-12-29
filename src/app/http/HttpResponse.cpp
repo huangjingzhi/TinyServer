@@ -2,6 +2,7 @@
 #include "HttpResponse.h"
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #define HTTP_LOAD_MAX_FILE_SIZE 1024 * 1024 * 4
 
 HttpResponse::HttpResponse(): 
@@ -52,7 +53,7 @@ bool HttpResponse::SetStatus(HttpResCode code)
     if (stStr.empty()) {
         return false;
     }
-    m_status = "HTTP/1.1 " + stStr + CodeToStr(code) + "\r\n";
+    m_status = "HTTP/1.1 " + stStr + " " + CodeToStr(code) + "\r\n";
 
     return true;
 }
@@ -71,12 +72,12 @@ bool HttpResponse::AddHeader(const std::string &key, const std::string &value)
 void HttpResponse::AddBody(const std::string &data)
 {
     m_body.insert(m_body.end(), data.begin(), data.end());
-    m_headers["Content-length"] = m_body.size();
+    m_headers["Content-length"] = std::to_string(m_body.size());
 }
 void HttpResponse::SetBody(const std::string &body)
 {
     m_body = body;
-    m_headers["Content-length"] = m_body.size();
+    m_headers["Content-length"] = std::to_string(m_body.size());
 }
 
 bool HttpResponse::LoadFileToBody(const std::string &filePath)
@@ -89,6 +90,7 @@ bool HttpResponse::LoadFileToBody(const std::string &filePath)
     std::stringstream buffer;
     buffer << file.rdbuf();
     m_body = buffer.str();
+    file.close();
     return true;
 }
 
@@ -96,13 +98,13 @@ std::string HttpResponse::MakeResponse()
 {
     std::string response = m_status;
     response.reserve(m_status.size() + m_headers.size() * 512 + m_body.size());
-    
+    m_headers["Content-length"] = std::to_string(m_body.size());
     for (const auto &pair : m_headers) {
         response += pair.first + ": " + pair.second + "\r\n";
     }
     
     response += "\r\n" + m_body;
-
+    std::cout << "response: " << response << std::endl;
     return std::move(response);
 }
 

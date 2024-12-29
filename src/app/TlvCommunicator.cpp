@@ -35,7 +35,7 @@ CommunicatorHandleResult TlvCommunicator::HandleSocketRead()
         m_msgManger.ParseRawMsg();
         // HandleMsgs();
     } else {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
             FreeMsg(msg);
             return CommunicatorHandleOK;
         }
