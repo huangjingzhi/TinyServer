@@ -33,7 +33,7 @@ int main()
     httpServerInfo.sourceDir = "/home/hjz/netserver/src/resources";
     httpServerInfo.httpRequestHandles["/"] = view_index;
     httpServerInfo.httpRequestHandles["/index"] = view_index;
-    HttpServer httpServer(8005, 1, 1024);
+    HttpServer httpServer(8005, 20, 1024);
     httpServer.InitStaticInfo(httpServerInfo);
     httpServer.Start();
     httpServer.JoinThreads();
