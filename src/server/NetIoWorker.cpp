@@ -106,17 +106,18 @@ void NetIoWorker::Working()
         {
             CommunicatorHandleResult ret = CommunicatorHandleOK;
             int tmpFd = epoll_events[i].data.fd;
-            // TODO: 这里需要判断 epoll_events[i].data.ptr 是否是空，已经有效
             if ((Communicator *)epoll_events[i].data.ptr == nullptr) {
                 continue;
             }
             if (epoll_events[i].events & EPOLLIN) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketRead();
-            }
-            if (epoll_events[i].events & EPOLLOUT) {
+                // 尝试发送数据
+                if (ret == CommunicatorHandleOK) {
+                    ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
+                }
+            } else  if (epoll_events[i].events & EPOLLOUT) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
-            }
-            if (epoll_events[i].events & EPOLLERR) {
+            } else  if (epoll_events[i].events & EPOLLERR) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketError();
             }
 
