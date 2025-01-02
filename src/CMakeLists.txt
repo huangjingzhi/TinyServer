@@ -30,7 +30,6 @@ set(SOURCES
     maintlvmsg.cpp
 )
 
-# 设置CMAKE_BUILD_TYPE为Debug
 # set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-g)
 add_compile_options(-std=gnu++11)

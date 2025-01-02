@@ -59,8 +59,8 @@ int Socket(const char *host, int clientPort)
 
      struct timeval tv;
     // 设置超时时间
-    tv.tv_sec = 10; // 超时时间为5秒
-    tv.tv_usec = 0; // 微秒设置为0
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
 
     // 使用setsockopt设置读取超时
     if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {

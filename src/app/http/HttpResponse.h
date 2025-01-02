@@ -27,10 +27,11 @@ class HttpResponse
 {
     HttpResType m_resType;
     HttpResCode m_resCode;
+    bool m_ready;
+    bool m_sending;
     std::string m_status;
     std::map<std::string, std::string> m_headers;
     std::string m_body;
-    bool m_ready;
 
     static std::string CodeToStr(HttpResCode code);
     static std::string TypeToStr(HttpResType type);
@@ -47,7 +48,8 @@ public:
     std::string MakeResponse();
     bool IsReady();
     void SetReady(bool ready);
-
+    bool IsSending();
+    void SetSending(bool sending);
     void SetResType(const HttpResType type);
 };
 

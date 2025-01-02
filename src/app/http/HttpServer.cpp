@@ -1,4 +1,5 @@
 #include "HttpServer.h"
+#include "../../commom/Logger.h"
 
 HttpServer::HttpServer(int port, int netIoworkerNumber, int workerMaxFd):
     m_port(port),m_netIoworkerNumber(netIoworkerNumber),m_workerMaxFd(workerMaxFd),
@@ -36,10 +37,12 @@ void HttpServer::Update(Communicator *communicator)
         response.SetBody("Path " + request.GetPath() +  " Not Found");
         response.SetResType(HTTPRES_TYPE_HTML);
         response.SetReady(true);
+        LOGGER.Log(ERROR, "[HttpServer]path not found. path=" + request.GetPath());
         return;
     }
     it->second(&this->m_httpServerInfo, request, response);
     response.SetReady(true);
+    LOGGER.Log(DEBUG, "[HttpServer]handle request. path=" + request.GetPath());
 }
 
 void HttpServer::JoinThreads()

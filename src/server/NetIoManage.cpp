@@ -4,6 +4,7 @@
 #include <mutex>
 #include <algorithm>
 #include  <unistd.h>
+#include "../commom/Logger.h"
 
 NetIoManage::NetIoManage(int workerNumber, int workerMaxFd): m_netIOWorkers(workerNumber, NetIoWorker(workerMaxFd)),
     m_netIOWorkerThs(workerNumber),
@@ -59,7 +60,7 @@ bool NetIoManage::TryAddListenFd(Communicator *communicator)
 void NetIoManage::AddListenFd(Communicator *communicator)
 {   
     if(this->TryAddListenFd(communicator)) {
-        std::cout << "add fd to " << communicator->GetFd() << std::endl;
+        LOGGER.Log(INFO, "[NetIoManage]add listen fd. fd=" + std::to_string(communicator->GetFd()));
         return;
     }
     this->AddNeedHandleFds(communicator);
@@ -70,7 +71,7 @@ void NetIoManage::AddNeedHandleFds(Communicator *communicator)
     std::unique_lock<std::mutex> lock(this->m_needHandleFdsMutex);
     this->m_needHandleFds.push_back(communicator);
     this->m_needHandleFdsConVar.notify_one();
-    std::cout << "put fd=" << communicator->GetFd() << " into next handle list " << std::endl;
+    LOGGER.Log(DEBUG, "[NetIoManage]put fd=" + std::to_string(communicator->GetFd()) + " into next handle list");
 }
 
 void NetIoManage::RemoveNeedHandleFds(Communicator *communicator)

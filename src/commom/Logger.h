@@ -8,8 +8,8 @@
 #define LOGGER_H
 
 typedef enum  LogLevel {
-    TRACE = 0,
-    DEBUG = 1,
+    DEBUG = 0,
+    TRACE = 1,
     INFO  = 2,
     WARN  = 3,
     ERROR = 4,
@@ -18,21 +18,16 @@ typedef enum  LogLevel {
 
 class Logger {
 public:
-    Logger(const std::string& fileName);
+    Logger(const std::string& fileName, LogLevel level=INFO);
     ~Logger();
-
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
 
     void SetLogLevel(LogLevel level);
     void Log(LogLevel level, const std::string& message);
-
 private:
     std::ofstream m_logFile;
     LogLevel m_logLevel;
     std::mutex m_busyMutex;
 };
 
-static Logger LOGGER{"server.log"};
-
+extern Logger LOGGER;
 #endif

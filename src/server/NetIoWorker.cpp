@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <fcntl.h>
-
+#include "../commom/Logger.h"
 NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false)
 {
 }
@@ -54,28 +54,27 @@ bool NetIoWorker::AddListen(Communicator *communicator)
     }
 
     if (this->SetFdBlocking(communicator->GetFd(), false) == false) {
-        std::cout << "set fd nonblocking error for fd=" << communicator->GetFd() << std::endl;
+        LOGGER.Log(ERROR, "[NetIoWorker]set fd nonblocking error. fd=" + std::to_string(communicator->GetFd()));
         return false;
     }
 
     epoll_event fdEvent = {0};
     fdEvent.data.fd = communicator->GetFd();
-    fdEvent.events = EPOLLIN;
+    fdEvent.events = EPOLLIN | EPOLLOUT | EPOLLERR;
     fdEvent.data.ptr = (void *)communicator;
-    std::cout << "[test] add fd = " << communicator->GetFd() <<  " to epoll." << std::endl;
+    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll. fd=" + std::to_string(communicator->GetFd()));
     int ret = epoll_ctl(this->m_epollFd, EPOLL_CTL_ADD, communicator->GetFd(), &fdEvent);
     if (ret == -1) {
-        std::cout << "add fd error for add fd=" << communicator->GetFd() << std::endl;
+        LOGGER.Log(ERROR, "[NetIoWorker]add fd to epoll error. fd=" + std::to_string(communicator->GetFd()));
         return false;
     }
-    std::cout << "[test] add fd = " << communicator->GetFd() <<  " to epoll end." << std::endl;
-
+    LOGGER.Log(DEBUG, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(communicator->GetFd()));
     this->m_listenFds.push_back(communicator);
 }
 
 void NetIoWorker::RemoveListenFd(Communicator *communicator)
 {
-    std::cout << "[debug] to destroy " << communicator->GetFd() << " " << communicator << std::endl;
+    LOGGER.Log(DEBUG, "[NetIoWorker]remove fd from epoll. fd=" + std::to_string(communicator->GetFd()));
     this->DestroyCommunicator(communicator);
 }
 
@@ -83,7 +82,7 @@ void NetIoWorker::Working()
 {
     int epollFd = epoll_create(10); // TODO: 进一步分析这里需要大于0的原因，应该设置什么合适的值
     if (epollFd == -1) {
-        std::cout << "create epll fd error. " << std::endl; 
+        LOGGER.Log(ERROR, "[NetIoWorker]create epoll error.");
         return;
     }
     this->m_epollFd = epollFd;
@@ -96,7 +95,7 @@ void NetIoWorker::Working()
             if (errno == EINTR) {
                 continue;
             }
-            std::cout << "error for  epoll_wait." << std::endl;
+            LOGGER.Log(ERROR, "[NetIoWorker]epoll wait error.");
             return;
         }
         if (retLen == 0) {
@@ -114,25 +113,22 @@ void NetIoWorker::Working()
             if (epoll_events[i].events & EPOLLIN) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketRead();
             }
-            else if (epoll_events[i].events & EPOLLOUT) // TODO: 分析：这里使用else if，是不是意味着不能处理EPOLLIN，EPOLLOUT同时到来的
-            {
+            if (epoll_events[i].events & EPOLLOUT) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
             }
-            else if (epoll_events[i].events & EPOLLERR)
-            {
+            if (epoll_events[i].events & EPOLLERR) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketError();
             }
 
-            switch (ret)
-            {
-            case CommunicatorHandleOK:
-                continue;
-                break;
-            case CommunicatorHandleDelete:
-                this->RemoveListenFd((Communicator *)epoll_events[i].data.ptr);
-                continue;
-            default:
-                break;
+            switch (ret) {
+                case CommunicatorHandleOK:
+                    continue;
+                    break;
+                case CommunicatorHandleDelete:
+                    this->RemoveListenFd((Communicator *)epoll_events[i].data.ptr);
+                    continue;
+                default:
+                    break;
             }
         }
     }

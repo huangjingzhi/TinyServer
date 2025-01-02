@@ -49,13 +49,10 @@ bool RawMsgManager::ParseRawMsg()
     if ((msgLen + headLen) > m_rawMsgbuf.size()) {
         return false;
     }
-    std::cout << "[debug] before m_rawMsgbuf len " << m_rawMsgbuf.size() << std::endl;
 
     m_readyMsg.push_back(std::move(
         std::vector<char>(m_rawMsgbuf.begin() + headLen, m_rawMsgbuf.begin() + headLen + msgLen)));
-    std::cout << "[debug] m_rawMsgbuf len " << m_rawMsgbuf.size() << " move len " << (headLen + msgLen)<< std::endl;
     m_rawMsgbuf.erase(m_rawMsgbuf.begin(), m_rawMsgbuf.begin() + headLen + msgLen);
-    std::cout << "[debug] after release m_rawMsgbuf len " << m_rawMsgbuf.size() << std::endl;
 
     return true;
 }
