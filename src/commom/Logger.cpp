@@ -6,10 +6,10 @@
 #include <vector>
 
 std::vector<std::string>  g_logLevelTag{
-    "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
+     "DEBUG", "TRACE", "INFO", "WARN", "ERROR", "FATAL"
 };
 
-Logger::Logger(const std::string& fileName) : m_logFile(fileName, std::ios::out | std::ios::app), m_logLevel(INFO) {
+Logger::Logger(const std::string& fileName, LogLevel level) : m_logFile(fileName, std::ios::out | std::ios::app), m_logLevel(level) {
     if (!m_logFile.is_open()) {
         std::cerr << "Failed to open log file: " << fileName << std::endl;
         std::abort();
@@ -27,6 +27,10 @@ void Logger::SetLogLevel(LogLevel level) {
 }
 
 void Logger::Log(LogLevel level, const std::string &message) {
+    if (level < m_logLevel) {
+        return;
+    }
+
     std::unique_lock<std::mutex> lock(m_busyMutex);
 
     if ((m_logLevel <= level) && m_logFile.is_open()) {
@@ -37,6 +41,6 @@ void Logger::Log(LogLevel level, const std::string &message) {
         strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &nowTimeTm);
 
         m_logFile << "[" << timeBuffer << "] [" << g_logLevelTag[level] << "] " << message << std::endl;
-
     }
 }
+ Logger LOGGER{"server.log"};

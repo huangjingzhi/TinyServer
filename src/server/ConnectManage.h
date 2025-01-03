@@ -10,6 +10,7 @@
 #include "NetIoManage.h"
 #include "Communicator.h"
 #include "App.h"
+#include "../commom/Logger.h"
 
 using namespace std;
 
@@ -53,7 +54,6 @@ ConnectManage<T>::ConnectManage(int port, int netIoworkerNumber, int workerMaxFd
 template <typename T>
 ConnectManage<T>::~ConnectManage()
 {
-    // 是否需要释放信号量，锁这些
     close(this->m_serverFd);
 }
 
@@ -68,10 +68,9 @@ void ConnectManage<T>::SetInitState(bool isInit)
 template <typename T>
 bool ConnectManage<T>::InitListenSocket()
 {
-    // 创建侦听sock
     int serverFd = socket(AF_INET, SOCK_STREAM, 0);
     if (serverFd == -1) {
-        // todo:log
+        LOGGER.Log(ERROR, "[ConnectManage]Failed to create socket.");
         return false;
     }
 
@@ -79,7 +78,7 @@ bool ConnectManage<T>::InitListenSocket()
 
     int opt = 1;
     if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        std::cerr << "Failed to set SO_REUSEADDR" << std::endl;
+        LOGGER.Log(ERROR, "[ConnectManage]Failed to set socket opt(SO_REUSEADDR).");
         close(serverFd);
         return -1;
     }
@@ -91,20 +90,17 @@ bool ConnectManage<T>::InitListenSocket()
     sockAddr.sin_port = htons(this->m_port);
 
     if (bind(this->m_serverFd, (struct sockaddr *)&sockAddr, sizeof(sockAddr)) == -1) {
-        // todo:log
-        std::cout  << "bind error." << std::endl;
-        // if error, need to close fd;
+        LOGGER.Log(ERROR, "[ConnectManage]Failed to bind socket.");
         close(this->m_serverFd);
         return false;
     }
 
     if (listen(this->m_serverFd, SOMAXCONN) == -1)
     {
-        std::cout << "listen error." << std::endl;
+        LOGGER.Log(ERROR, "[ConnectManage]Failed to listen.");
         close(this->m_serverFd);
         return -1;
     }
-    std::cout << "listen for :" << this->m_serverFd << " in port " << this->m_port << std::endl;
     return true;
 }
 
@@ -132,20 +128,18 @@ void ConnectManage<T>::Run()
             this->m_isInitConVar.wait(lock);
         }
     }
-    std::cout << "meet Init in run of ConnectManage." << std::endl; 
+    LOGGER.Log(DEBUG, "[ConnectManage]Run.");
     while (true) {
         struct sockaddr_in clientSock;
         socklen_t clientLen = sizeof(clientSock);
 
         int clientFd = accept(this->m_serverFd, (struct sockaddr *)&clientSock, &clientLen);
         if (clientFd == -1) {
-            // todo:log
-            std::cout << "accept error." << std::endl;
+            LOGGER.Log(ERROR, "[ConnectManage]Failed to accept.");
             continue;
         }
-        std::cout << "get fd " << clientFd << "." << std::endl;
+        LOGGER.Log(INFO, "[ConnectManage]Accept client. fd=" + std::to_string(clientFd));
         T *t = new T(clientFd, this->m_app);
-        std::cout << "[debug] " << "get communicate " << clientFd << " " << t << std::endl;  
         this->m_netIoManage.AddListenFd(t);
     }
 }

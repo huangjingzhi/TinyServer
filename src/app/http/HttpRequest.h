@@ -29,7 +29,7 @@ enum HttpCode {
 
 class HttpRequest
 {
-private:
+public:
     std::vector<char> m_rawMsgbuf;
     HttpParseState m_parseState;
     std::string m_path;
@@ -57,8 +57,5 @@ public:
     bool GetPost(const std::string &key, std::string &value);
     bool IsFinshed();
 };
-
-
-
 
 #endif

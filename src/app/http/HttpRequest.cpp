@@ -2,7 +2,7 @@
 #include <string>
 #include <algorithm>
 #include <regex>
-
+#include "../../commom/Logger.h"
 
 const std::string CRLF = "\r\n";
 int ConverHex(char ch) {
@@ -27,7 +27,8 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
-HttpRequest::HttpRequest() : m_rawMsgbuf(0)
+HttpRequest::HttpRequest() : m_rawMsgbuf(0),
+    m_parseState(HTTPPARSE_LINE), m_path(""), m_method(""), m_version(""), m_body(""), m_headers(), m_post()
 {
 }
 
@@ -38,26 +39,30 @@ HttpRequest::~HttpRequest()
 void HttpRequest::PutRawMsg(Msg &rawMsg)
 {
     m_rawMsgbuf.insert(m_rawMsgbuf.begin(), rawMsg.buf, rawMsg.buf + rawMsg.len);
-    std::cout << "put raw msg: " << std::string(rawMsg.buf, rawMsg.buf + rawMsg.len) << std::endl;
+    LOGGER.Log(DEBUG, "[HttpRequest]put raw msg. msg=" + std::string(rawMsg.buf, rawMsg.buf + rawMsg.len));
 }
 
 bool HttpRequest::ParseLine(const std::string &lineData)
 {
-
+    LOGGER.Log(DEBUG, "[HttpRequest]parse line. lineData=" + lineData);
     std::istringstream iss(lineData);
     std::vector<std::string> words;
     std::string word;
+    std::string wordStr;
     while (iss >> word) {
         words.push_back(word);
-        std::cout << "word: " << word;
-    } std::cout << std::endl;
-    std::cout << "parse line: " << lineData << std::endl;
+        wordStr += word + " ";
+    }
+    LOGGER.Log(DEBUG, "[HttpRequest]parse line. words=" + wordStr);
     if (words.size() != 3) {
+        LOGGER.Log(ERROR, "[HttpRequest]parse line error. words.size()=" + std::to_string(words.size())
+        + " lineData=" + lineData
+        + " words=" + wordStr);
         m_parseState = HTTPPARSE_ERROR;
         return false;
     }
+    
     m_method = words[0];
-
     m_path = words[1];
     m_version = words[2];
     m_parseState = HTTPPARSE_HEADERS;
@@ -76,7 +81,7 @@ void HttpRequest::ParseHeaders(const std::string &lineData)
     trim(val);
     trim(key);
     m_headers[key] = val;
-    std::cout << "parse headers: " << lineData << std::endl;
+    LOGGER.Log(DEBUG, "[HttpRequest]parse headers. key=" + key + " val=" + val);
 }
 
 void HttpRequest::ParseBody(const std::string &lineData)
@@ -87,8 +92,6 @@ void HttpRequest::ParseBody(const std::string &lineData)
         return;
     }
     m_body += lineData;
-    // ParsePost();
-    // m_parseState = HTTPPARSE_FINISH;
 }
 
 
@@ -176,6 +179,14 @@ void HttpRequest::ParseRawMsg()
                 break;
         }
         m_rawMsgbuf.erase(m_rawMsgbuf.begin(), it + (CRLF.end() - CRLF.begin()));
+    }
+    if (m_parseState == HTTPPARSE_FINISH) {
+        std::string headerStr = "";
+        for (auto &pair : m_headers) {
+            headerStr += pair.first + ":" + pair.second + "\n";
+        }
+        LOGGER.Log(DEBUG, "[HttpRequest]parse finish. path=" + m_path + " method=" + m_method
+            + " version=" + m_version + "\nheaders=" + headerStr + "\nbody=" + m_body);
     }
 
     return;

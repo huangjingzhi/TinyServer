@@ -3,10 +3,11 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include "../../commom/Logger.h"
 #define HTTP_LOAD_MAX_FILE_SIZE 1024 * 1024 * 4
 
-HttpResponse::HttpResponse(): 
-    m_ready(false), m_resCode(HTTPRES_CODE_DEFAULT), m_resType(HTTPRES_TYPE_DEFAULT)
+HttpResponse::HttpResponse():
+    m_resCode(HTTPRES_CODE_DEFAULT), m_resType(HTTPRES_TYPE_DEFAULT), m_ready(false), m_sending(false)
 {
 }
 
@@ -102,9 +103,8 @@ std::string HttpResponse::MakeResponse()
     for (const auto &pair : m_headers) {
         response += pair.first + ": " + pair.second + "\r\n";
     }
-    
+    LOGGER.Log(DEBUG, "[HttpReponse]is finished. resp:\n" + m_body);
     response += "\r\n" + m_body;
-    std::cout << "response: " << response << std::endl;
     return std::move(response);
 }
 
@@ -121,3 +121,12 @@ void HttpResponse::SetResType(const HttpResType type)
     m_headers["Content-type"] = TypeToStr(type);
 }
 
+bool HttpResponse::IsSending()
+{
+    return m_sending;
+}
+
+void HttpResponse::SetSending(bool sending)
+{
+    m_sending = sending;
+}
