@@ -54,8 +54,6 @@ bool HttpRequest::ParseLine(const std::string &lineData)
         wordStr += word + " ";
     }
     LOGGER.Log(DEBUG, "[HttpRequest]parse line. words=" + wordStr);
-    std::cout << "lineData=" << lineData << std::endl;
-    std::cout << "words.size()=" << words.size() << std::endl;
     if (words.size() != 3) {
         LOGGER.Log(ERROR, "[HttpRequest]parse line error. words.size()=" + std::to_string(words.size())
         + " lineData=" + lineData

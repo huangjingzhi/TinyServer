@@ -6,8 +6,8 @@
 #include "../../commom/Logger.h"
 #define HTTP_LOAD_MAX_FILE_SIZE 1024 * 1024 * 4
 
-HttpResponse::HttpResponse(): 
-    m_ready(false), m_resCode(HTTPRES_CODE_DEFAULT), m_resType(HTTPRES_TYPE_DEFAULT)
+HttpResponse::HttpResponse():
+    m_resCode(HTTPRES_CODE_DEFAULT), m_resType(HTTPRES_TYPE_DEFAULT), m_ready(false), m_sending(false)
 {
 }
 

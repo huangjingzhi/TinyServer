@@ -420,7 +420,7 @@ void benchcore(const char *host,const int port,const char *req)
     alarm(benchtime);
 
     rlen=strlen(req);
-    int tryCnt = 3;
+    int tryCnt = 1;
     failed = 1;
     speed = 0;
     while(tryCnt > 0)

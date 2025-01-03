@@ -27,6 +27,10 @@ void Logger::SetLogLevel(LogLevel level) {
 }
 
 void Logger::Log(LogLevel level, const std::string &message) {
+    if (level < m_logLevel) {
+        return;
+    }
+
     std::unique_lock<std::mutex> lock(m_busyMutex);
 
     if ((m_logLevel <= level) && m_logFile.is_open()) {
