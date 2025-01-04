@@ -4,6 +4,10 @@
 #include <unistd.h>
 #include <sys/epoll.h>
 #include <errno.h>
+#include <sys/sendfile.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "../../commom/Logger.h"
 
 Logger LOGGER_Read{"HttpCommunicator_read.log", DEBUG};
@@ -83,10 +87,24 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
     }
 
     if (m_sendBuf.empty()) {
+        if (m_httpResponse.IsReady() &&
+            m_httpResponse.IsSending() &&
+            !m_httpResponse.IsSendFileEnd()) { // 就绪并且头部发送完了
+            off_t filePos = m_httpResponse.GetSendFilePos();
+            ssize_t retSize = sendfile(this->m_fd, m_httpResponse.GetSendFIleFd(), &filePos, m_httpResponse.GetSendFileSize() - filePos);
+            if (retSize < 0) {
+                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                    LOGGER.Log(ERROR, "[HttpCommunicator]sendfile error. fd=" + std::to_string(this->m_fd));
+                    return CommunicatorHandleDelete;
+                }
+            }
+            LOGGER.Log(DEBUG, "[HttpCommunicator]sendfile. fd=" + std::to_string(this->m_fd) + " filePos=" + std::to_string(filePos) + " retSize=" + std::to_string(retSize));
+            m_httpResponse.SetSendFilePos(filePos + retSize);
+        }
         return CommunicatorHandleOK;
     }
 
-    int ret = write(this->m_fd, m_sendBuf.c_str(), m_sendBuf.size());
+    ssize_t ret = write(this->m_fd, m_sendBuf.c_str(), m_sendBuf.size());
     if (ret < 0) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
             LOGGER.Log(ERROR, "[HttpCommunicator]write error. fd=" + std::to_string(this->m_fd));
