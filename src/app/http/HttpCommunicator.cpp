@@ -9,6 +9,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "../../commom/Logger.h"
+#include <iostream>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
 
 Logger LOGGER_Read{"HttpCommunicator_read.log", DEBUG};
 Logger LOGGER_Write{"HttpCommunicator_write.log", DEBUG};
@@ -41,12 +48,6 @@ void HttpCommunicator::HandleRequest()
     }
     if (m_httpRequest.IsFinshed()) {
         m_app->Update(this);
-
-        if (m_httpResponse.IsReady() && !m_httpResponse.IsSending()) {
-            std::string response = m_httpResponse.MakeResponse();
-            m_sendBuf += response;
-            m_httpResponse.SetSending(true);
-        }
         return;
     }
 }
@@ -99,7 +100,7 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
                 }
             }
             LOGGER.Log(DEBUG, "[HttpCommunicator]sendfile. fd=" + std::to_string(this->m_fd) + " filePos=" + std::to_string(filePos) + " retSize=" + std::to_string(retSize));
-            m_httpResponse.SetSendFilePos(filePos + retSize);
+            m_httpResponse.SetSendFilePos(filePos);
         }
         return CommunicatorHandleOK;
     }

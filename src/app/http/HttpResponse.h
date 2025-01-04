@@ -68,6 +68,7 @@ public:
     off_t GetSendFileSize();
     void SetSendFilePos(off_t pos);
     bool IsSendFileEnd();
+    HttpResSrc GetSendSrc();
     
 };
 

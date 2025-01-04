@@ -118,7 +118,7 @@ std::string HttpResponse::MakeResponse()
             LOGGER.Log(ERROR, "[HttpResponse]file not open. file=" + m_filePath);
             return "";
         }
-        if (m_filePos >= m_fileSize) {
+        if (m_filePos > m_fileSize) {
             close(m_fd);
             m_fd = -1;
             return "";
@@ -127,6 +127,7 @@ std::string HttpResponse::MakeResponse()
     } else {
         m_headers["Content-length"] = std::to_string(m_body.size());
     }
+
     std::string response = m_status;
     response.reserve(m_status.size() + m_headers.size() * 512);
     for (const auto &pair : m_headers) {
@@ -208,4 +209,9 @@ void HttpResponse::SetSendFilePos(off_t pos)
 bool HttpResponse::IsSendFileEnd()
 {
     return m_filePos >= m_fileSize;
+}
+
+HttpResSrc HttpResponse::GetSendSrc()
+{
+    return m_resSrc;
 }
