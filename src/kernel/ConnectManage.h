@@ -10,7 +10,7 @@
 #include "NetIoManage.h"
 #include "Communicator.h"
 #include "App.h"
-#include "../commom/Logger.h"
+#include "Logger.h"
 
 using namespace std;
 
@@ -128,7 +128,6 @@ void ConnectManage<T>::Run()
             this->m_isInitConVar.wait(lock);
         }
     }
-    LOGGER.Log(DEBUG, "[ConnectManage]Run.");
     while (true) {
         struct sockaddr_in clientSock;
         socklen_t clientLen = sizeof(clientSock);

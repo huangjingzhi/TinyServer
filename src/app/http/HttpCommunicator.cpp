@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "../../commom/Logger.h"
+#include "Logger.h"
 #include <iostream>
 #include <cstring>
 #include <sys/types.h>
@@ -16,10 +16,6 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
-
-Logger LOGGER_Read{"HttpCommunicator_read.log", DEBUG};
-Logger LOGGER_Write{"HttpCommunicator_write.log", DEBUG};
-Logger LOGGER_RW{"HttpCommunicator_RW.log", DEBUG};
 
 HttpCommunicator::HttpCommunicator(int fd, App *app) :
     Communicator(fd), m_app(app), m_sendBuf()
@@ -57,10 +53,7 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketRead()
     Msg msg(8 * 1024);
     int ret = read(this->m_fd, msg.buf, msg.maxLen);
     if (ret > 0) {
-        LOGGER_Read.Log(DEBUG, "[HttpCommunicator]read msg. fd=" + std::to_string(this->m_fd) + " msg=\n" + std::string(msg.buf, ret));
-        LOGGER_RW.Log(DEBUG, "[HttpCommunicator]read msg. fd=" + std::to_string(this->m_fd) + " msg=\n" + std::string(msg.buf, ret));
         msg.len = ret;
-        LOGGER.Log(DEBUG, "[HttpCommunicator]read msg. fd=" + std::to_string(this->m_fd) + " msg=" + std::string(msg.buf, msg.len));
         m_httpRequest.PutRawMsg(msg);
         m_httpRequest.ParseRawMsg();
         HandleRequest();
@@ -69,14 +62,16 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketRead()
             FreeMsg(msg);
             return CommunicatorHandleOK;
         }
-        FreeMsg(msg);
         if (ret == 0) {
             LOGGER.Log(INFO, "[HttpCommunicator]client close. fd=" + std::to_string(this->m_fd));  
         } else {
             LOGGER.Log(ERROR, "[HttpCommunicator]read error. fd=" + std::to_string(this->m_fd));
         }
+        FreeMsg(msg);
         return CommunicatorHandleDelete;
     }
+
+    FreeMsg(msg);
     return CommunicatorHandleOK;
 }
 CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
@@ -99,7 +94,6 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
                     return CommunicatorHandleDelete;
                 }
             }
-            LOGGER.Log(DEBUG, "[HttpCommunicator]sendfile. fd=" + std::to_string(this->m_fd) + " filePos=" + std::to_string(filePos) + " retSize=" + std::to_string(retSize));
             m_httpResponse.SetSendFilePos(filePos);
         }
         return CommunicatorHandleOK;
@@ -113,14 +107,8 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
         }
     }
     if (ret == m_sendBuf.size()) {
-        LOGGER.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf);
-        LOGGER_Write.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf);
-        LOGGER_RW.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf);
         m_sendBuf.clear();
     } else {
-        LOGGER.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf.substr(0, ret));
-        LOGGER_Write.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf.substr(0, ret));
-        LOGGER_RW.Log(DEBUG, "[HttpCommunicator]write msg. fd=" + std::to_string(this->m_fd) + " msg=" + m_sendBuf.substr(0, ret));
         m_sendBuf = m_sendBuf.substr(ret);
     }
     return CommunicatorHandleOK;
@@ -130,4 +118,24 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketError()
 {
     LOGGER.Log(ERROR, "[HttpCommunicator]socket error. fd=" + std::to_string(this->m_fd) + " error=" + std::to_string(errno));
     return CommunicatorHandleOK;
+}
+
+bool HttpCommunicator::IsNeedSendData()
+{
+    if (!m_httpRequest.IsFinshed() || !m_httpResponse.IsReady()) {
+        return false;
+    }
+    if (m_httpResponse.IsReady() && !m_httpResponse.IsSending()) {
+        std::string response = m_httpResponse.MakeResponse();
+        m_sendBuf += response;
+        m_httpResponse.SetSending(true);
+    }
+
+    if (!m_sendBuf.empty()) {
+        return true;
+    }
+    if (m_httpResponse.GetSendSrc() == HTTPRES_SRC_FILE) {
+        return !m_httpResponse.IsSendFileEnd();
+    }
+    return false;
 }

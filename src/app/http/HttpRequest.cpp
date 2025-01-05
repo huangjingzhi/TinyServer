@@ -2,7 +2,7 @@
 #include <string>
 #include <algorithm>
 #include <regex>
-#include "../../commom/Logger.h"
+#include "Logger.h"
 
 const std::string CRLF = "\r\n";
 int ConverHex(char ch) {
@@ -39,12 +39,10 @@ HttpRequest::~HttpRequest()
 void HttpRequest::PutRawMsg(Msg &rawMsg)
 {
     m_rawMsgbuf.insert(m_rawMsgbuf.begin(), rawMsg.buf, rawMsg.buf + rawMsg.len);
-    LOGGER.Log(DEBUG, "[HttpRequest]put raw msg. msg=" + std::string(rawMsg.buf, rawMsg.buf + rawMsg.len));
 }
 
 bool HttpRequest::ParseLine(const std::string &lineData)
 {
-    LOGGER.Log(DEBUG, "[HttpRequest]parse line. lineData=" + lineData);
     std::istringstream iss(lineData);
     std::vector<std::string> words;
     std::string word;
@@ -53,7 +51,6 @@ bool HttpRequest::ParseLine(const std::string &lineData)
         words.push_back(word);
         wordStr += word + " ";
     }
-    LOGGER.Log(DEBUG, "[HttpRequest]parse line. words=" + wordStr);
     if (words.size() != 3) {
         LOGGER.Log(ERROR, "[HttpRequest]parse line error. words.size()=" + std::to_string(words.size())
         + " lineData=" + lineData
@@ -81,7 +78,6 @@ void HttpRequest::ParseHeaders(const std::string &lineData)
     trim(val);
     trim(key);
     m_headers[key] = val;
-    LOGGER.Log(DEBUG, "[HttpRequest]parse headers. key=" + key + " val=" + val);
 }
 
 void HttpRequest::ParseBody(const std::string &lineData)
@@ -185,8 +181,6 @@ void HttpRequest::ParseRawMsg()
         for (auto &pair : m_headers) {
             headerStr += pair.first + ":" + pair.second + "\n";
         }
-        LOGGER.Log(DEBUG, "[HttpRequest]parse finish. path=" + m_path + " method=" + m_method
-            + " version=" + m_version + "\nheaders=" + headerStr + "\nbody=" + m_body);
     }
 
     return;

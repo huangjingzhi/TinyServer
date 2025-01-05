@@ -1,10 +1,10 @@
 
 #include <iostream>
 #include <sys/stat.h>
-#include "app/http/HttpServer.h"
-#include "app/http/HttpServerInfo.h"
-#include "app/http/HttpRequest.h"
-#include "app/http/HttpResponse.h"
+#include "HttpServer.h"
+#include "HttpServerInfo.h"
+#include "HttpRequest.h"
+#include "HttpResponse.h"
 #include "commom/Logger.h"
 #include <iostream>
 #include <execinfo.h>
@@ -13,20 +13,13 @@
 #include <unistd.h>
 using namespace std;
 
-Logger LOGGER_view_indexCnt{"view_index.log", DEBUG};
-std::mutex g_mutex;
-int g_cnt = 0;
+
 
 void view_base(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     response.SetBody("Hello World!");
     response.SetStatus(HTTPRES_CODE_OK);
     response.AddHeader("Content-Type", "text/html");
-    {
-        std::unique_lock<std::mutex> lock(g_mutex);
-        g_cnt++;
-        LOGGER_view_indexCnt.Log(DEBUG, "[view] cnt=" + std::to_string(g_cnt));
-    }
 }
 
 void view_index(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
@@ -146,7 +139,7 @@ int main()
         httpServerInfo.httpRequestHandles["/video.mp4"] = view_video1mp4;
         // httpServerInfo.httpRequestHandles["/video.mp4"] = view_video1mp4buffer;
         httpServerInfo.httpRequestHandles["/images4"] = view_image4;
-        HttpServer httpServer(8005, 1, 20);
+        HttpServer httpServer(8005, 2, 20);
         httpServer.InitStaticInfo(httpServerInfo);
         httpServer.Start();
         httpServer.JoinThreads();

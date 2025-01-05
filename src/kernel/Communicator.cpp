@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
-#include "../commom/Logger.h"
+#include "Logger.h"
 
 Communicator::Communicator(int fd) : m_fd(fd)
 {
@@ -44,4 +44,9 @@ void Communicator::AddEpollEvent(int epollFd, int event)
     if (epoll_ctl(epollFd, EPOLL_CTL_MOD, m_fd, &fdEvent) == -1) {
         LOGGER.Log(ERROR, "[Communicator]add epoll event error. fd=" + std::to_string(m_fd) + " event=" + std::to_string(event));
     }
+}
+
+bool Communicator::IsNeedSendData()
+{
+    return true;
 }

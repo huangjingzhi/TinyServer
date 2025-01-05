@@ -1,5 +1,5 @@
 #include "HttpServer.h"
-#include "../../commom/Logger.h"
+#include "Logger.h"
 
 HttpServer::HttpServer(int port, int netIoworkerNumber, int workerMaxFd):
     m_port(port),m_netIoworkerNumber(netIoworkerNumber),m_workerMaxFd(workerMaxFd),
@@ -42,7 +42,6 @@ void HttpServer::Update(Communicator *communicator)
     }
     it->second(&this->m_httpServerInfo, request, response);
     response.SetReady(true);
-    LOGGER.Log(DEBUG, "[HttpServer]handle request. path=" + request.GetPath());
 }
 
 void HttpServer::JoinThreads()

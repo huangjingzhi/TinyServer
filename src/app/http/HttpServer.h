@@ -3,8 +3,8 @@
 #include "HttpCommunicator.h"
 #include "HttpResponse.h"
 #include "HttpServerInfo.h"
-#include "../../server/ConnectManage.h"
-#include "../../server/App.h"
+#include "ConnectManage.h"
+#include "App.h"
 
 #include <unordered_map>
 #include <memory>

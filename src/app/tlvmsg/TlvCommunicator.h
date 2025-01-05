@@ -1,7 +1,6 @@
-#include "../server/Communicator.h"
-#include "../server/App.h"
-
-#include "../commom/RawMsgManager.h"
+#include "Communicator.h"
+#include "App.h"
+#include "RawMsgManager.h"
 
 #ifndef TLVCOMMUNICATOR_H
 #define TLVCOMMUNICATOR_H

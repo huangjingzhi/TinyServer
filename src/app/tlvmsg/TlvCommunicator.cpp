@@ -20,7 +20,6 @@ void TlvCommunicator::HandleMsgs()
 {
     auto msgs = m_msgManger.GetAllMsg();
     for (auto &msg : msgs) {
-        std::cout << "get msg from fd=" << m_fd << " " << std::string(msg.begin(), msg.end()) << std::endl;
         // 此处也可以通过 m_app 调用上层框架处理 msgs
     }
 }

@@ -14,7 +14,6 @@ class Communicator
 {
 protected:
     int m_fd;
-    void AddEpollEvent(int epollFd, int event);
 public:
     Communicator(int fd);
     virtual ~Communicator();
@@ -22,6 +21,8 @@ public:
     virtual CommunicatorHandleResult HandleSocketRead();
     virtual CommunicatorHandleResult HandleSocketWrite();
     virtual CommunicatorHandleResult HandleSocketError();
+    virtual bool IsNeedSendData();
+    void AddEpollEvent(int epollFd, int event);
 };
 
 #endif

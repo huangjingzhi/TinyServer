@@ -1,7 +1,7 @@
-#include "../../server/Communicator.h"
-#include "../../server/App.h"
+#include "Communicator.h"
+#include "App.h"
 
-#include "../../commom/RawMsgManager.h"
+#include "RawMsgManager.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"
 
@@ -21,10 +21,9 @@ public:
     CommunicatorHandleResult HandleSocketRead() override;
     CommunicatorHandleResult HandleSocketWrite() override;
     CommunicatorHandleResult HandleSocketError() override;
-
+    bool IsNeedSendData() override;
     HttpRequest &GetHttpRequest();
     HttpResponse &GetHttpResponse();
-
 
 };
 

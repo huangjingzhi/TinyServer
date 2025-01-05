@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <fcntl.h>
-#include "../commom/Logger.h"
+#include "Logger.h"
 NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false)
 {
 }
@@ -60,7 +60,7 @@ bool NetIoWorker::AddListen(Communicator *communicator)
 
     epoll_event fdEvent = {0};
     fdEvent.data.fd = communicator->GetFd();
-    fdEvent.events = EPOLLIN | EPOLLOUT | EPOLLERR;
+    fdEvent.events = EPOLLIN | EPOLLERR;
     fdEvent.data.ptr = (void *)communicator;
     LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll. fd=" + std::to_string(communicator->GetFd()));
     int ret = epoll_ctl(this->m_epollFd, EPOLL_CTL_ADD, communicator->GetFd(), &fdEvent);
@@ -68,13 +68,13 @@ bool NetIoWorker::AddListen(Communicator *communicator)
         LOGGER.Log(ERROR, "[NetIoWorker]add fd to epoll error. fd=" + std::to_string(communicator->GetFd()));
         return false;
     }
-    LOGGER.Log(DEBUG, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(communicator->GetFd()));
+    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(communicator->GetFd()));
     this->m_listenFds.push_back(communicator);
 }
 
 void NetIoWorker::RemoveListenFd(Communicator *communicator)
 {
-    LOGGER.Log(DEBUG, "[NetIoWorker]remove fd from epoll. fd=" + std::to_string(communicator->GetFd()));
+    LOGGER.Log(INFO, "[NetIoWorker]remove fd from epoll. fd=" + std::to_string(communicator->GetFd()));
     this->DestroyCommunicator(communicator);
 }
 
@@ -109,14 +109,23 @@ void NetIoWorker::Working()
             if ((Communicator *)epoll_events[i].data.ptr == nullptr) {
                 continue;
             }
+            Communicator *communicator = (Communicator *)epoll_events[i].data.ptr;
             if (epoll_events[i].events & EPOLLIN) {
-                ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketRead();
+                ret = communicator->HandleSocketRead();
                 // 尝试发送数据
-                if (ret == CommunicatorHandleOK) {
-                    ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
+                if (ret == CommunicatorHandleOK && communicator->IsNeedSendData()) {
+                    ret = communicator->HandleSocketWrite();
+                    if (ret == CommunicatorHandleOK && communicator->IsNeedSendData()) {
+                        // 没有发送完, 注册写事件
+                        communicator->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLOUT | EPOLLERR);
+                    }
                 }
             } else  if (epoll_events[i].events & EPOLLOUT) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
+                if (ret == CommunicatorHandleOK && !communicator->IsNeedSendData()) {
+                    // 发送完，取消写事件
+                    communicator->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLERR);
+                }
             } else  if (epoll_events[i].events & EPOLLERR) {
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketError();
             }
