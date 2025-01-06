@@ -42,6 +42,9 @@
         "thread": "cpp",
         "regex": "cpp",
         "tuple": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "atomic": "cpp",
+        "cstring": "cpp",
+        "unordered_set": "cpp"
     }
 }
