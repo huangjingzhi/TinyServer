@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include "Logger.h"
 #include <functional>
+#include "TagTimer.h"
 
 NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false), m_timer(60, 1)
 {
@@ -91,8 +92,15 @@ void NetIoWorker::Working()
         return;
     }
     this->m_epollFd = epollFd;
-
+    int64_t preTime = GetCurEpochTimeWithSecond();
+    int64_t period = m_timer.GetTimeoutPeriod();
     while (true) {
+        int64_t curTime = GetCurEpochTimeWithSecond();
+        if (curTime - preTime >= period) {
+            this->MoveTimer();
+            preTime = curTime;
+        }
+
         epoll_event epoll_events[this->M_MAX_FDS];
         int timeOut = 1000; // TODO: timeout 应该从外层传入，这里的timeout的意义？
         int retLen = epoll_wait(this->m_epollFd, epoll_events, this->M_MAX_FDS, timeOut);
@@ -190,4 +198,10 @@ void NetIoWorker::UpdateTimer(int fd)
 {
     std::unique_lock<std::mutex> lock(m_timerUsed);
     m_timer.Update(fd);
+}
+
+void NetIoWorker::MoveTimer()
+{
+    std::unique_lock<std::mutex> lock(m_timerUsed);
+    m_timer.MoveTime(GetCurEpochTimeWithSecond());
 }

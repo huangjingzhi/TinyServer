@@ -25,7 +25,6 @@ class TagTimer
     size_t m_curPos;
     bool m_isAutomaticUpdate;
     unordered_map<T, TimeOutAction> m_timeoutActions;
-    void MoveTime(int64_t t);
 public:
     TagTimer();
     TagTimer(uint32_t slotSize, uint32_t slotTime, bool automatic=false);
@@ -35,6 +34,7 @@ public:
     void Update(const T &member);
     void Delete(const T &member);
     uint32_t GetTimeoutPeriod();
+    void MoveTime(int64_t t);
 };
 
 template <typename T>
