@@ -363,7 +363,7 @@ static int bench(void)
 	 }
 	 /* fprintf(stderr,"Child - %d %d\n",speed,failed); */
 	 fprintf(f,"%d %d %d\n",speed,failed,bytes);
-     printf("write speed=%d, failed=%d, bytes=%d\n",speed,failed,bytes);
+    //  printf("write speed=%d, failed=%d, bytes=%d\n",speed,failed,bytes);
 	 fclose(f);
 	 return 0;
   } else
@@ -386,7 +386,7 @@ static int bench(void)
             fprintf(stderr,"Some of our childrens died.\n");
             break;
         }
-        printf("get speed=%d, failed=%d, bytes=%d\n",i,j,k);
+        // printf("get speed=%d, failed=%d, bytes=%d\n",i,j,k);
         speed+=i;
         failed+=j;
         bytes+=k;
@@ -443,10 +443,10 @@ void benchcore(const char *host,const int port,const char *req)
 	    while(trySubCnt > 0) {
             trySubCnt--;
 	        i=read(s,buf,8192);
-            printf("return content %s\n",buf);
+            // printf("return content %s\n",buf);
             /* fprintf(stderr,"%d\n",i); */
 	        if(i<0) { 
-                 printf("failed=%d\n",failed);
+                //  printf("failed=%d\n",failed);
                  close(s);
                  break;
               }
@@ -458,7 +458,7 @@ void benchcore(const char *host,const int port,const char *req)
                     bytes+=i;
                     speed = 1;
                     failed = 0;
-                    printf("speed=%d, failed=%d, bytes=%d\n", speed, failed, bytes);
+                    // printf("speed=%d, failed=%d, bytes=%d\n", speed, failed, bytes);
                     break;
                 }
            }

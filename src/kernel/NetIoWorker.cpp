@@ -6,7 +6,10 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include "Logger.h"
-NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false)
+#include <functional>
+#include "TagTimer.h"
+
+NetIoWorker::NetIoWorker(int maxFds):M_MAX_FDS(maxFds), m_epollFd(-1), m_isWorking(false), m_timer(60, 1)
 {
 }
 
@@ -15,6 +18,7 @@ NetIoWorker::NetIoWorker(const NetIoWorker&netIoWorker)
     this->M_MAX_FDS =  netIoWorker.M_MAX_FDS;
     this->m_epollFd = -1;
     this->m_isWorking = false;
+    this->m_timer = netIoWorker.m_timer;
 }
 
 NetIoWorker::~NetIoWorker() 
@@ -34,41 +38,43 @@ void NetIoWorker::DestroyCommunicator(Communicator *communicator)
     struct epoll_event event;
     event.data.fd = communicator->GetFd();
     epoll_ctl(this->m_epollFd, EPOLL_CTL_DEL, communicator->GetFd(), &event);
-
     {
         std::unique_lock<std::mutex> lock(this->m_listenFdsMutex);
         auto it = std::remove_if(this->m_listenFds.begin(), this->m_listenFds.end(), [communicator](Communicator *i) { return i == communicator;});
         this->m_listenFds.erase(it, this->m_listenFds.end());
     }
 
+    this->DleteTimer(communicator->GetFd());
     delete communicator;
     communicator = nullptr;
 }
 
 bool NetIoWorker::AddListen(Communicator *communicator)
 {
+    int clientFd = communicator->GetFd();
     std::unique_lock<std::mutex> lock(this->m_listenFdsMutex);
 
     if (this->m_listenFds.size() >= this->M_MAX_FDS) {
         return false;
     }
 
-    if (this->SetFdBlocking(communicator->GetFd(), false) == false) {
-        LOGGER.Log(ERROR, "[NetIoWorker]set fd nonblocking error. fd=" + std::to_string(communicator->GetFd()));
+    if (this->SetFdBlocking(clientFd, false) == false) {
+        LOGGER.Log(ERROR, "[NetIoWorker]set fd nonblocking error. fd=" + std::to_string(clientFd));
         return false;
     }
 
     epoll_event fdEvent = {0};
-    fdEvent.data.fd = communicator->GetFd();
+    fdEvent.data.fd = clientFd;
     fdEvent.events = EPOLLIN | EPOLLERR;
     fdEvent.data.ptr = (void *)communicator;
-    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll. fd=" + std::to_string(communicator->GetFd()));
-    int ret = epoll_ctl(this->m_epollFd, EPOLL_CTL_ADD, communicator->GetFd(), &fdEvent);
+    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll. fd=" + std::to_string(clientFd));
+    int ret = epoll_ctl(this->m_epollFd, EPOLL_CTL_ADD, clientFd, &fdEvent);
     if (ret == -1) {
-        LOGGER.Log(ERROR, "[NetIoWorker]add fd to epoll error. fd=" + std::to_string(communicator->GetFd()));
+        LOGGER.Log(ERROR, "[NetIoWorker]add fd to epoll error. fd=" + std::to_string(clientFd));
         return false;
     }
-    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(communicator->GetFd()));
+    LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(clientFd));
+    this->AddTimer(clientFd);
     this->m_listenFds.push_back(communicator);
 }
 
@@ -80,14 +86,21 @@ void NetIoWorker::RemoveListenFd(Communicator *communicator)
 
 void NetIoWorker::Working()
 {
-    int epollFd = epoll_create(10); // TODO: 进一步分析这里需要大于0的原因，应该设置什么合适的值
+    int epollFd = epoll_create(10);
     if (epollFd == -1) {
         LOGGER.Log(ERROR, "[NetIoWorker]create epoll error.");
         return;
     }
     this->m_epollFd = epollFd;
-
+    int64_t preTime = GetCurEpochTimeWithSecond();
+    int64_t period = m_timer.GetTimeoutPeriod();
     while (true) {
+        int64_t curTime = GetCurEpochTimeWithSecond();
+        if (curTime - preTime >= period) {
+            this->MoveTimer();
+            preTime = curTime;
+        }
+
         epoll_event epoll_events[this->M_MAX_FDS];
         int timeOut = 1000; // TODO: timeout 应该从外层传入，这里的timeout的意义？
         int retLen = epoll_wait(this->m_epollFd, epoll_events, this->M_MAX_FDS, timeOut);
@@ -111,6 +124,7 @@ void NetIoWorker::Working()
             }
             Communicator *communicator = (Communicator *)epoll_events[i].data.ptr;
             if (epoll_events[i].events & EPOLLIN) {
+                this->UpdateTimer(communicator->GetFd());
                 ret = communicator->HandleSocketRead();
                 // 尝试发送数据
                 if (ret == CommunicatorHandleOK && communicator->IsNeedSendData()) {
@@ -121,6 +135,7 @@ void NetIoWorker::Working()
                     }
                 }
             } else  if (epoll_events[i].events & EPOLLOUT) {
+                this->UpdateTimer(communicator->GetFd());
                 ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
                 if (ret == CommunicatorHandleOK && !communicator->IsNeedSendData()) {
                     // 发送完，取消写事件
@@ -159,4 +174,34 @@ bool NetIoWorker::SetFdBlocking(int fd, bool isBlocking)
         return false;
     }
     return true;
+}
+
+bool NetIoWorker::EpollDelSocketFd(int fd)
+{
+    struct epoll_event event;
+    event.data.fd = fd;
+    epoll_ctl(this->m_epollFd, EPOLL_CTL_DEL, fd, &event);
+}
+
+void NetIoWorker::AddTimer(int fd)
+{
+    std::unique_lock<std::mutex> lock(m_timerUsed);
+    TimeOutAction action = std::bind(&NetIoWorker::EpollDelSocketFd, this, fd);
+    m_timer.Add(fd, action);
+}
+void NetIoWorker::DleteTimer(int fd)
+{
+    std::unique_lock<std::mutex> lock(m_timerUsed);
+    m_timer.Delete(fd);
+}
+void NetIoWorker::UpdateTimer(int fd)
+{
+    std::unique_lock<std::mutex> lock(m_timerUsed);
+    m_timer.Update(fd);
+}
+
+void NetIoWorker::MoveTimer()
+{
+    std::unique_lock<std::mutex> lock(m_timerUsed);
+    m_timer.MoveTime(GetCurEpochTimeWithSecond());
 }

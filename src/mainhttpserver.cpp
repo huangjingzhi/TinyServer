@@ -13,16 +13,14 @@
 #include <unistd.h>
 using namespace std;
 
-
-
-void view_base(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewBase(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     response.SetBody("Hello World!");
     response.SetStatus(HTTPRES_CODE_OK);
     response.AddHeader("Content-Type", "text/html");
 }
 
-void view_index(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewIndex(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     std::string filePath =  httpServerInfo->sourceDir +  "/html/index.html";
 
@@ -42,7 +40,7 @@ void view_index(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, H
     response.AddHeader("Content-Type", "text/html");
 }
 
-void view_video(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewVideo(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     std::string filePath =  httpServerInfo->sourceDir +  "/html/video.html";
 
@@ -56,7 +54,7 @@ void view_video(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, H
     response.AddHeader("Content-Type", "text/html");
 }
 
-void view_video1mp4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewVideo1Mp4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     std::string filePath =  httpServerInfo->sourceDir +  "/video/3.mp4";
 
@@ -70,7 +68,7 @@ void view_video1mp4(const HttpServerInfo *httpServerInfo, const HttpRequest &res
     response.AddHeader("Content-Type", "video/mp4");
 }
 
-void view_video1mp4buffer(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewVideo1Mp4Buffer(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
     std::string filePath =  httpServerInfo->sourceDir +  "/video/3.mp4";
 
@@ -85,9 +83,9 @@ void view_video1mp4buffer(const HttpServerInfo *httpServerInfo, const HttpReques
     response.AddHeader("Content-Type", "video/mp4");
 }
 
-void view_image4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
+void ViewImage4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
-    std::string filePath = httpServerInfo->sourceDir + "/images/instagram-image4.jpg";
+    std::string filePath = httpServerInfo->sourceDir + "/images/instagram-image3.jpg";
 
     if (response.LoadFileToBody(filePath) == false) {
         response.SetStatus(HTTPRES_CODE_SERVER_ERROR);
@@ -101,7 +99,7 @@ void view_image4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, 
 }
 
 
-void print_stack_trace() {
+void PrintStackTrace() {
     const int max_frames = 1024;
     void* buffer[max_frames];
     int num_frames = backtrace(buffer, max_frames);
@@ -115,39 +113,37 @@ void print_stack_trace() {
     free(symbols);
 }
 
-void signal_handler(int signum) {
+void SignalHandle(int signum) {
     std::cerr << "Error: signal " << signum << std::endl;
-    print_stack_trace();
+    PrintStackTrace();
     exit(signum);
 }
 
 int main()
 {
-
-    signal(SIGSEGV, signal_handler); // 捕获段错误信号
-    signal(SIGABRT, signal_handler); // 捕获中止信号
-
+    signal(SIGSEGV, SignalHandle);
+    signal(SIGABRT, SignalHandle);
 
     try {
         LOGGER.SetLogLevel(LogLevel::INFO);
 
         HttpServerInfo httpServerInfo;
         httpServerInfo.sourceDir = "/home/hjz/netserver/src/resources";
-        httpServerInfo.httpRequestHandles["/"] = view_index;
-        httpServerInfo.httpRequestHandles["/index"] = view_index;
-        httpServerInfo.httpRequestHandles["/video"] = view_video;
-        httpServerInfo.httpRequestHandles["/video.mp4"] = view_video1mp4;
-        // httpServerInfo.httpRequestHandles["/video.mp4"] = view_video1mp4buffer;
-        httpServerInfo.httpRequestHandles["/images4"] = view_image4;
-        HttpServer httpServer(8005, 2, 20);
+        httpServerInfo.httpRequestHandles["/"] = ViewIndex;
+        httpServerInfo.httpRequestHandles["/index"] = ViewIndex;
+        httpServerInfo.httpRequestHandles["/video"] = ViewVideo;
+        httpServerInfo.httpRequestHandles["/video.mp4"] = ViewVideo1Mp4;
+        // httpServerInfo.httpRequestHandles["/video.mp4"] = ViewVideo1Mp4Buffer;
+        httpServerInfo.httpRequestHandles["/images4"] = ViewImage4;
+        HttpServer httpServer(8005, 10, 1024);
         httpServer.InitStaticInfo(httpServerInfo);
         httpServer.Start();
         httpServer.JoinThreads();
+
     } catch (const std::exception& e) {
         std::cerr << "Exception caught: " << e.what() << std::endl;
-        print_stack_trace();
+        PrintStackTrace();
     }
-
 
     return 0;
 }

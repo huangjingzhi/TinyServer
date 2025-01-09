@@ -8,14 +8,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "Logger.h"
 #include <iostream>
-#include <cstring>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <unistd.h>
+#include "Logger.h"
 
 HttpCommunicator::HttpCommunicator(int fd, App *app) :
     Communicator(fd), m_app(app), m_sendBuf()
@@ -80,6 +77,10 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
         std::string response = m_httpResponse.MakeResponse();
         m_sendBuf += response;
         m_httpResponse.SetSending(true);
+        if (m_httpResponse.GetSendSrc() == HTTPRES_SRC_FILE) {
+            int on = 1;
+            (void)setsockopt(this->m_fd, IPPROTO_TCP, TCP_CORK, &on, sizeof(on));
+        }
     }
 
     if (m_sendBuf.empty()) {
@@ -95,6 +96,10 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
                 }
             }
             m_httpResponse.SetSendFilePos(filePos);
+            if (m_httpResponse.IsSendFileEnd()) {
+                int on = 0;
+                (void)setsockopt(this->m_fd, IPPROTO_TCP, TCP_CORK, &on, sizeof(on));
+            }
         }
         return CommunicatorHandleOK;
     }
@@ -129,6 +134,10 @@ bool HttpCommunicator::IsNeedSendData()
         std::string response = m_httpResponse.MakeResponse();
         m_sendBuf += response;
         m_httpResponse.SetSending(true);
+        if (m_httpResponse.GetSendSrc() == HTTPRES_SRC_FILE) {
+            int on = 1;
+            (void)setsockopt(this->m_fd, IPPROTO_TCP, TCP_CORK, &on, sizeof(on));
+        }
     }
 
     if (!m_sendBuf.empty()) {
