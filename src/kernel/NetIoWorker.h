@@ -29,7 +29,7 @@ public:
     NetIoWorker(int maxFds);
     NetIoWorker(const NetIoWorker &netIoWorker);
     ~NetIoWorker();
-    bool AddListen(Communicator *communicator); // TODO: 此处可以使用移动构造函数处理、
+    bool AddListen(Communicator *communicator);
     void RemoveListenFd(Communicator *communicator);
     void Working();
 };
