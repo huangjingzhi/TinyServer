@@ -32,8 +32,8 @@ void NetIoManage::Run()
             while (this->m_needHandleFds.empty()) {
                 this->m_needHandleFdsConVar.wait(lock);
             }
-            Communicator *communicator = this->m_needHandleFds.back(); // todo: 这里需要设计处理顺序，数据结构应该使用对应合适的
-            if (this->TryAddListenFd(communicator)) { // 如果return false 这里会一直循环，可以怎么优化？
+            Channel *channel = this->m_needHandleFds.back(); // todo: 这里需要设计处理顺序，数据结构应该使用对应合适的
+            if (this->TryAddListenFd(channel)) { // 如果return false 这里会一直循环，可以怎么优化？
                 this->m_needHandleFds.pop_back();
                 continue;
             }
@@ -41,12 +41,12 @@ void NetIoManage::Run()
     }
 }
 
-bool NetIoManage::TryAddListenFd(Communicator *communicator)
+bool NetIoManage::TryAddListenFd(Channel *channel)
 {
     int k = this->m_netIOWorkers.size();
     while (k >= 0) {
         this->m_nextWorkerIndex = (++this->m_nextWorkerIndex) % this->m_netIOWorkers.size();
-        if (this->m_netIOWorkers[this->m_nextWorkerIndex].AddListen(communicator)) {
+        if (this->m_netIOWorkers[this->m_nextWorkerIndex].AddListen(channel)) {
             return true;
         }
         --k;
@@ -54,30 +54,30 @@ bool NetIoManage::TryAddListenFd(Communicator *communicator)
     return false;
 }
 
-void NetIoManage::AddListenFd(Communicator *communicator)
+void NetIoManage::AddListenFd(Channel *channel)
 {   
-    if(this->TryAddListenFd(communicator)) {
-        LOGGER.Log(INFO, "[NetIoManage]add listen fd. fd=" + std::to_string(communicator->GetFd()));
+    if(this->TryAddListenFd(channel)) {
+        LOGGER.Log(INFO, "[NetIoManage]add listen fd. fd=" + std::to_string(channel->GetFd()));
         return;
     }
-    if (communicator != nullptr) {
-        delete communicator;
-        communicator = nullptr;
+    if (channel != nullptr) {
+        delete channel;
+        channel = nullptr;
     }
 }
 
-void NetIoManage::AddNeedHandleFds(Communicator *communicator)
+void NetIoManage::AddNeedHandleFds(Channel *channel)
 {
     std::unique_lock<std::mutex> lock(this->m_needHandleFdsMutex);
-    this->m_needHandleFds.push_back(communicator);
+    this->m_needHandleFds.push_back(channel);
     this->m_needHandleFdsConVar.notify_one();
-    LOGGER.Log(DEBUG, "[NetIoManage]put fd=" + std::to_string(communicator->GetFd()) + " into next handle list");
+    LOGGER.Log(DEBUG, "[NetIoManage]put fd=" + std::to_string(channel->GetFd()) + " into next handle list");
 }
 
-void NetIoManage::RemoveNeedHandleFds(Communicator *communicator)
+void NetIoManage::RemoveNeedHandleFds(Channel *channel)
 {
     std::unique_lock<std::mutex> lock(this->m_needHandleFdsMutex);
-    auto it = std::remove_if(this->m_needHandleFds.begin(), this->m_needHandleFds.end(), [communicator](Communicator *i) { return i == communicator;});
+    auto it = std::remove_if(this->m_needHandleFds.begin(), this->m_needHandleFds.end(), [channel](Channel *i) { return i == channel;});
     this->m_needHandleFds.erase(it, this->m_needHandleFds.end());
 }
 

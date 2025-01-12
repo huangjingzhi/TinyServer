@@ -1,22 +1,22 @@
-#include "TlvCommunicator.h"
+#include "TlvChannel.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-TlvCommunicator::TlvCommunicator(int fd, App *app) : Communicator(fd), m_app(app)
+TlvChannel::TlvChannel(int fd, App *app) : Channel(fd), m_app(app)
 {
 }
 
-TlvCommunicator::~TlvCommunicator()
+TlvChannel::~TlvChannel()
 {
 }
 
-CommunicatorHandleResult TlvCommunicator::HandleSocketError()
+ChannelHandleResult TlvChannel::HandleSocketError()
 {
-    return CommunicatorHandleDelete;
+    return ChannelHandleDelete;
 }
 
-void TlvCommunicator::HandleMsgs()
+void TlvChannel::HandleMsgs()
 {
     auto msgs = m_msgManger.GetAllMsg();
     for (auto &msg : msgs) {
@@ -24,7 +24,7 @@ void TlvCommunicator::HandleMsgs()
     }
 }
 
-CommunicatorHandleResult TlvCommunicator::HandleSocketRead()
+ChannelHandleResult TlvChannel::HandleSocketRead()
 {
     Msg msg(8 * 1024); // TODO 这里每次都要申请一次内存，是否有优化的空间
     int ret = read(this->m_fd, msg.buf, msg.maxLen);
@@ -36,18 +36,18 @@ CommunicatorHandleResult TlvCommunicator::HandleSocketRead()
     } else {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             FreeMsg(msg);
-            return CommunicatorHandleOK;
+            return ChannelHandleOK;
         }
         FreeMsg(msg);
-        return CommunicatorHandleDelete;
+        return ChannelHandleDelete;
     }
 
     FreeMsg(msg);
-    return CommunicatorHandleOK;
+    return ChannelHandleOK;
 }
 
-CommunicatorHandleResult TlvCommunicator::HandleSocketWrite()
+ChannelHandleResult TlvChannel::HandleSocketWrite()
 {
     std::cout << "meet out event" << std::endl;
-    return CommunicatorHandleOK;
+    return ChannelHandleOK;
 }

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "NetIoManage.h"
-#include "Communicator.h"
+#include "Channel.h"
 #include "App.h"
 #include "Logger.h"
 
