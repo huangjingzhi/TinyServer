@@ -22,13 +22,10 @@ void NetIoManage::Init()
     for (size_t i = 0; i < this->m_netIOWorkers.size(); i++) {
         this->m_netIOWorkerThs[i] = std::thread(&NetIoWorker::Working, &m_netIOWorkers[i]); // 是否应该放在NetIoWorker里面进行创建线程
     }
-    this->m_selfThread = std::thread(&NetIoManage::Run, this);
 }
 
 void NetIoManage::Run()
 {
-    // 这里将accept的fd进行缓存，是否会造成对端发了消息，但是但是当前还没有及时处理，从而丢失数据。
-    /* Run 和 AddNeedHandleFds 会不会竞争导致死锁，this->m_needHandleFdsConVar.wait的时候，是Run持续持有锁的*/
     while (true) {
         {
             std::unique_lock<std::mutex> lock(this->m_needHandleFdsMutex);
@@ -63,7 +60,10 @@ void NetIoManage::AddListenFd(Communicator *communicator)
         LOGGER.Log(INFO, "[NetIoManage]add listen fd. fd=" + std::to_string(communicator->GetFd()));
         return;
     }
-    this->AddNeedHandleFds(communicator);
+    if (communicator != nullptr) {
+        delete communicator;
+        communicator = nullptr;
+    }
 }
 
 void NetIoManage::AddNeedHandleFds(Communicator *communicator)
