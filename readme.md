@@ -15,4 +15,6 @@ cmake ../src
 ```shell
 nc -v 127.0.0.1 20000
 
+lsof -i -n -P
+
 ```
