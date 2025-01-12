@@ -123,6 +123,7 @@ int main()
 {
     signal(SIGSEGV, SignalHandle);
     signal(SIGABRT, SignalHandle);
+    signal(SIGFPE, SIG_IGN);
 
     try {
         LOGGER.SetLogLevel(LogLevel::INFO);
