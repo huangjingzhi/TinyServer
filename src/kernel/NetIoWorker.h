@@ -26,6 +26,7 @@ private:
     void DleteTimer(int fd);
     void UpdateTimer(int fd);
     void MoveTimer();
+    void TimoutAction(int fd);
 public:
     NetIoWorker(int maxFds);
     NetIoWorker(const NetIoWorker &netIoWorker);
