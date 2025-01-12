@@ -183,10 +183,23 @@ bool NetIoWorker::EpollDelSocketFd(int fd)
     epoll_ctl(this->m_epollFd, EPOLL_CTL_DEL, fd, &event);
 }
 
+void NetIoWorker::TimoutAction(int fd)
+{
+    {
+        std::unique_lock<std::mutex> lock(this->m_listenFdsMutex);
+        this->m_listenFds.erase(std::remove_if(
+                this->m_listenFds.begin(),
+                this->m_listenFds.end(),
+                [fd](Communicator *i) { return i->GetFd() == fd;}),
+            this->m_listenFds.end());
+    }
+    close(fd);
+}
+
 void NetIoWorker::AddTimer(int fd)
 {
     std::unique_lock<std::mutex> lock(m_timerUsed);
-    TimeOutAction action = std::bind(&NetIoWorker::EpollDelSocketFd, this, fd);
+    TimeOutAction action = std::bind(&NetIoWorker::TimoutAction, this, fd);
     m_timer.Add(fd, action);
 }
 void NetIoWorker::DleteTimer(int fd)

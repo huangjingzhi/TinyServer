@@ -83,10 +83,10 @@ void TagTimer<T>::MoveTime(int64_t t)
     
         m_curPos = (m_curPos + 1) % m_slotSize;
         for (auto &it : m_slots[m_curPos].second) {
+            if (m_latestPos.find(it) == m_latestPos.end()) {
+                continue;
+            }
             if (m_curPos == m_latestPos[it]) {
-                if (m_latestPos.find(it) == m_latestPos.end()) {
-                    continue;
-                }
                 // do something for time out
                 auto itAction = m_timeoutActions.find(it);
                 if (itAction != m_timeoutActions.end())

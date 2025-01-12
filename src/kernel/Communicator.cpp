@@ -12,7 +12,7 @@ Communicator::Communicator(int fd) : m_fd(fd)
 
 Communicator::~Communicator()
 {
-    close(m_fd); // TODO: close 的时候，是否应该判断时机
+    close(m_fd);
 }
 
 int Communicator::GetFd() const
