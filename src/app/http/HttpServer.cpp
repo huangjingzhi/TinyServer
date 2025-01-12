@@ -19,18 +19,18 @@ void HttpServer::InitStaticInfo(const HttpServerInfo &httpServerInfo)
 
 void HttpServer::Start()
 {
-    this->m_httpConnectManager.reset(new ConnectManage<HttpCommunicator>(
+    this->m_httpConnectManager.reset(new ConnectManage<HttpChannel>(
         m_port, m_netIoworkerNumber, m_workerMaxFd, this));
     this->m_httpConnectManager->Init();
 }
-void HttpServer::Update(Communicator *communicator)
+void HttpServer::Update(Channel *channel)
 {
-    HttpCommunicator *httpCommunicator = dynamic_cast<HttpCommunicator *>(communicator);
-    if (httpCommunicator == nullptr) {
+    HttpChannel *httpChannel = dynamic_cast<HttpChannel *>(channel);
+    if (httpChannel == nullptr) {
         return;
     }
-    HttpRequest &request = httpCommunicator->GetHttpRequest();
-    HttpResponse &response = httpCommunicator->GetHttpResponse();
+    HttpRequest &request = httpChannel->GetHttpRequest();
+    HttpResponse &response = httpChannel->GetHttpResponse();
     auto it = this->m_httpServerInfo.httpRequestHandles.find(request.GetPath());
     if (it == this->m_httpServerInfo.httpRequestHandles.end()) {
         response.SetStatus(HTTPRES_CODE_NOTFOUND);

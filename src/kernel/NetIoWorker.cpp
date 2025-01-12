@@ -23,35 +23,35 @@ NetIoWorker::NetIoWorker(const NetIoWorker&netIoWorker)
 
 NetIoWorker::~NetIoWorker() 
 {
-    for (Communicator *communicator: this->m_listenFds) {
-        this->DestroyCommunicator(communicator);
-        communicator = nullptr;
+    for (Channel *channel: this->m_listenFds) {
+        this->DestroyChannel(channel);
+        channel = nullptr;
     }
     close(this->m_epollFd);
 }
 
-void NetIoWorker::DestroyCommunicator(Communicator *communicator)
+void NetIoWorker::DestroyChannel(Channel *channel)
 {
-    if (communicator == nullptr) {
+    if (channel == nullptr) {
         return;
     }
     struct epoll_event event;
-    event.data.fd = communicator->GetFd();
-    epoll_ctl(this->m_epollFd, EPOLL_CTL_DEL, communicator->GetFd(), &event);
+    event.data.fd = channel->GetFd();
+    epoll_ctl(this->m_epollFd, EPOLL_CTL_DEL, channel->GetFd(), &event);
     {
         std::unique_lock<std::mutex> lock(this->m_listenFdsMutex);
-        auto it = std::remove_if(this->m_listenFds.begin(), this->m_listenFds.end(), [communicator](Communicator *i) { return i == communicator;});
+        auto it = std::remove_if(this->m_listenFds.begin(), this->m_listenFds.end(), [channel](Channel *i) { return i == channel;});
         this->m_listenFds.erase(it, this->m_listenFds.end());
     }
 
-    this->DleteTimer(communicator->GetFd());
-    delete communicator;
-    communicator = nullptr;
+    this->DleteTimer(channel->GetFd());
+    delete channel;
+    channel = nullptr;
 }
 
-bool NetIoWorker::AddListen(Communicator *communicator)
+bool NetIoWorker::AddListen(Channel *channel)
 {
-    int clientFd = communicator->GetFd();
+    int clientFd = channel->GetFd();
     std::unique_lock<std::mutex> lock(this->m_listenFdsMutex);
 
     if (this->m_listenFds.size() >= this->M_MAX_FDS) {
@@ -66,7 +66,7 @@ bool NetIoWorker::AddListen(Communicator *communicator)
     epoll_event fdEvent = {0};
     fdEvent.data.fd = clientFd;
     fdEvent.events = EPOLLIN | EPOLLERR;
-    fdEvent.data.ptr = (void *)communicator;
+    fdEvent.data.ptr = (void *)channel;
     LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll. fd=" + std::to_string(clientFd));
     int ret = epoll_ctl(this->m_epollFd, EPOLL_CTL_ADD, clientFd, &fdEvent);
     if (ret == -1) {
@@ -75,13 +75,13 @@ bool NetIoWorker::AddListen(Communicator *communicator)
     }
     LOGGER.Log(INFO, "[NetIoWorker]add fd to epoll success. fd=" + std::to_string(clientFd));
     this->AddTimer(clientFd);
-    this->m_listenFds.push_back(communicator);
+    this->m_listenFds.push_back(channel);
 }
 
-void NetIoWorker::RemoveListenFd(Communicator *communicator)
+void NetIoWorker::RemoveListenFd(Channel *channel)
 {
-    LOGGER.Log(INFO, "[NetIoWorker]remove fd from epoll. fd=" + std::to_string(communicator->GetFd()));
-    this->DestroyCommunicator(communicator);
+    LOGGER.Log(INFO, "[NetIoWorker]remove fd from epoll. fd=" + std::to_string(channel->GetFd()));
+    this->DestroyChannel(channel);
 }
 
 void NetIoWorker::Working()
@@ -117,40 +117,40 @@ void NetIoWorker::Working()
         
         for (size_t i = 0; i < (size_t)retLen; ++i)
         {
-            CommunicatorHandleResult ret = CommunicatorHandleOK;
+            ChannelHandleResult ret = ChannelHandleOK;
             int tmpFd = epoll_events[i].data.fd;
-            if ((Communicator *)epoll_events[i].data.ptr == nullptr) {
+            if ((Channel *)epoll_events[i].data.ptr == nullptr) {
                 continue;
             }
-            Communicator *communicator = (Communicator *)epoll_events[i].data.ptr;
+            Channel *channel = (Channel *)epoll_events[i].data.ptr;
             if (epoll_events[i].events & EPOLLIN) {
-                this->UpdateTimer(communicator->GetFd());
-                ret = communicator->HandleSocketRead();
+                this->UpdateTimer(channel->GetFd());
+                ret = channel->HandleSocketRead();
                 // 尝试发送数据
-                if (ret == CommunicatorHandleOK && communicator->IsNeedSendData()) {
-                    ret = communicator->HandleSocketWrite();
-                    if (ret == CommunicatorHandleOK && communicator->IsNeedSendData()) {
+                if (ret == ChannelHandleOK && channel->IsNeedSendData()) {
+                    ret = channel->HandleSocketWrite();
+                    if (ret == ChannelHandleOK && channel->IsNeedSendData()) {
                         // 没有发送完, 注册写事件
-                        communicator->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLOUT | EPOLLERR);
+                        channel->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLOUT | EPOLLERR);
                     }
                 }
             } else  if (epoll_events[i].events & EPOLLOUT) {
-                this->UpdateTimer(communicator->GetFd());
-                ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketWrite();
-                if (ret == CommunicatorHandleOK && !communicator->IsNeedSendData()) {
+                this->UpdateTimer(channel->GetFd());
+                ret = ((Channel *)epoll_events[i].data.ptr)->HandleSocketWrite();
+                if (ret == ChannelHandleOK && !channel->IsNeedSendData()) {
                     // 发送完，取消写事件
-                    communicator->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLERR);
+                    channel->AddEpollEvent(m_epollFd, EPOLLIN | EPOLLERR);
                 }
             } else  if (epoll_events[i].events & EPOLLERR) {
-                ret = ((Communicator *)epoll_events[i].data.ptr)->HandleSocketError();
+                ret = ((Channel *)epoll_events[i].data.ptr)->HandleSocketError();
             }
 
             switch (ret) {
-                case CommunicatorHandleOK:
+                case ChannelHandleOK:
                     continue;
                     break;
-                case CommunicatorHandleDelete:
-                    this->RemoveListenFd((Communicator *)epoll_events[i].data.ptr);
+                case ChannelHandleDelete:
+                    this->RemoveListenFd((Channel *)epoll_events[i].data.ptr);
                     continue;
                 default:
                     break;
@@ -190,7 +190,7 @@ void NetIoWorker::TimoutAction(int fd)
         this->m_listenFds.erase(std::remove_if(
                 this->m_listenFds.begin(),
                 this->m_listenFds.end(),
-                [fd](Communicator *i) { return i->GetFd() == fd;}),
+                [fd](Channel *i) { return i->GetFd() == fd;}),
             this->m_listenFds.end());
     }
     close(fd);

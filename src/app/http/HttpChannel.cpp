@@ -1,4 +1,4 @@
-#include "HttpCommunicator.h"
+#include "HttpChannel.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,27 +14,27 @@
 #include <netinet/tcp.h>
 #include "Logger.h"
 
-HttpCommunicator::HttpCommunicator(int fd, App *app) :
-    Communicator(fd), m_app(app), m_sendBuf()
+HttpChannel::HttpChannel(int fd, App *app) :
+    Channel(fd), m_app(app), m_sendBuf()
 {
     m_sendBuf.reserve(4 * 1024);
 }
 
-HttpCommunicator::~HttpCommunicator()
+HttpChannel::~HttpChannel()
 {
 }
 
-HttpRequest &HttpCommunicator::GetHttpRequest()
+HttpRequest &HttpChannel::GetHttpRequest()
 {
     return m_httpRequest;
 }
 
-HttpResponse &HttpCommunicator::GetHttpResponse()
+HttpResponse &HttpChannel::GetHttpResponse()
 {
     return m_httpResponse;
 }
 
-void HttpCommunicator::HandleRequest()
+void HttpChannel::HandleRequest()
 {
     if (m_app == nullptr) {
         return;
@@ -45,7 +45,7 @@ void HttpCommunicator::HandleRequest()
     }
 }
 
-CommunicatorHandleResult HttpCommunicator::HandleSocketRead()
+ChannelHandleResult HttpChannel::HandleSocketRead()
 {
     Msg msg(8 * 1024);
     int ret = read(this->m_fd, msg.buf, msg.maxLen);
@@ -57,21 +57,21 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketRead()
     } else {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             FreeMsg(msg);
-            return CommunicatorHandleOK;
+            return ChannelHandleOK;
         }
         if (ret == 0) {
-            LOGGER.Log(INFO, "[HttpCommunicator]client close. fd=" + std::to_string(this->m_fd));  
+            LOGGER.Log(INFO, "[HttpChannel]client close. fd=" + std::to_string(this->m_fd));  
         } else {
-            LOGGER.Log(ERROR, "[HttpCommunicator]read error. fd=" + std::to_string(this->m_fd));
+            LOGGER.Log(ERROR, "[HttpChannel]read error. fd=" + std::to_string(this->m_fd));
         }
         FreeMsg(msg);
-        return CommunicatorHandleDelete;
+        return ChannelHandleDelete;
     }
 
     FreeMsg(msg);
-    return CommunicatorHandleOK;
+    return ChannelHandleOK;
 }
-CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
+ChannelHandleResult HttpChannel::HandleSocketWrite()
 {
     if (m_httpResponse.IsReady() && !m_httpResponse.IsSending()) {
         std::string response = m_httpResponse.MakeResponse();
@@ -91,8 +91,8 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
             ssize_t retSize = sendfile(this->m_fd, m_httpResponse.GetSendFIleFd(), &filePos, m_httpResponse.GetSendFileSize() - filePos);
             if (retSize < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    LOGGER.Log(ERROR, "[HttpCommunicator]sendfile error. fd=" + std::to_string(this->m_fd));
-                    return CommunicatorHandleDelete;
+                    LOGGER.Log(ERROR, "[HttpChannel]sendfile error. fd=" + std::to_string(this->m_fd));
+                    return ChannelHandleDelete;
                 }
             }
             m_httpResponse.SetSendFilePos(filePos);
@@ -101,14 +101,14 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
                 (void)setsockopt(this->m_fd, IPPROTO_TCP, TCP_CORK, &on, sizeof(on));
             }
         }
-        return CommunicatorHandleOK;
+        return ChannelHandleOK;
     }
 
     ssize_t ret = write(this->m_fd, m_sendBuf.c_str(), m_sendBuf.size());
     if (ret < 0) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            LOGGER.Log(ERROR, "[HttpCommunicator]write error. fd=" + std::to_string(this->m_fd));
-            return CommunicatorHandleDelete;
+            LOGGER.Log(ERROR, "[HttpChannel]write error. fd=" + std::to_string(this->m_fd));
+            return ChannelHandleDelete;
         }
     }
     if (ret == m_sendBuf.size()) {
@@ -116,16 +116,16 @@ CommunicatorHandleResult HttpCommunicator::HandleSocketWrite()
     } else {
         m_sendBuf = m_sendBuf.substr(ret);
     }
-    return CommunicatorHandleOK;
+    return ChannelHandleOK;
 }
 
-CommunicatorHandleResult HttpCommunicator::HandleSocketError()
+ChannelHandleResult HttpChannel::HandleSocketError()
 {
-    LOGGER.Log(ERROR, "[HttpCommunicator]socket error. fd=" + std::to_string(this->m_fd) + " error=" + std::to_string(errno));
-    return CommunicatorHandleOK;
+    LOGGER.Log(ERROR, "[HttpChannel]socket error. fd=" + std::to_string(this->m_fd) + " error=" + std::to_string(errno));
+    return ChannelHandleOK;
 }
 
-bool HttpCommunicator::IsNeedSendData()
+bool HttpChannel::IsNeedSendData()
 {
     if (!m_httpRequest.IsFinshed() || !m_httpResponse.IsReady()) {
         return false;

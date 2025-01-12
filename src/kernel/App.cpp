@@ -9,7 +9,7 @@ App::~App()
 {
 }
 
-void App::Update(Communicator *communicator)
+void App::Update(Channel *channel)
 {
     return;
 }
