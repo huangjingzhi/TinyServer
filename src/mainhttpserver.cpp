@@ -133,7 +133,7 @@ int main()
         httpServerInfo.httpRequestHandles["/index"] = ViewIndex;
         httpServerInfo.httpRequestHandles["/video"] = ViewVideo;
         httpServerInfo.httpRequestHandles["/video.mp4"] = ViewVideo1Mp4;
-        // httpServerInfo.httpRequestHandles["/video.mp4"] = ViewVideo1Mp4Buffer;
+        httpServerInfo.httpRequestHandles["/videobuff.mp4"] = ViewVideo1Mp4Buffer;
         httpServerInfo.httpRequestHandles["/images4"] = ViewImage4;
         HttpServer httpServer(8005, 10, 1024);
         httpServer.InitStaticInfo(httpServerInfo);
