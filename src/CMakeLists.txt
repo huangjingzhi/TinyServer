@@ -26,6 +26,6 @@ set(SOURCES
 
 add_compile_options(-g)
 add_compile_options(-std=gnu++11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -g -Wall -O0 -Wno-unused-variable -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x  -Wall -O0 -Wno-unused-variable -pthread")
 
 add_executable(netserver ${SOURCES})
