@@ -11,9 +11,8 @@ Linux下轻量级通用网络服务框架，在此框架下可以快速实现一
 
 > 网络服务基础框架
 
-<div align=center><img src="./docs/readme/服务端框架.png" height="201"/> </div>
+<div align=center><img src="https://github.com/huangjingzhi/TinyServer/blob/main/docs/readme/imgs/serverframe.png" height="201"/> </div>
 
-<div align=center><img src="./img/服务端框架.png" height="201"/> </div>
 
     网络服务框架由侦听线程和IO线程组构成。侦听线程处理新连接，将连接分配给线程组中的线程处理，IO线程组处理连接上的IO事件。
     IO线程：每个IO线程创建一个epoll实例，管理多个连接上的IO事件。数据流主要是由连接的读事件产生，通过应用层的业务逻辑解析数据流，产生业务消息，将业务消息再次通过业务逻辑处理，产生响应数据流，通过连接的写事件发送出去。
@@ -85,8 +84,8 @@ class App
 
 >视频播放
 
-<div align=center><img src="./img/video.gif" height="201"/> </div>
+<div align=center><img src="https://github.com/huangjingzhi/TinyServer/blob/main/docs/readme/imgs/video.gif" height="201"/> </div>
 
 >图片
-<div align=center><img src="./img/images4.gif" height="201"/> </div>
+<div align=center><img src="https://github.com/huangjingzhi/TinyServer/blob/main/docs/readme/imgs/images4.gif" height="201"/> </div>
 
