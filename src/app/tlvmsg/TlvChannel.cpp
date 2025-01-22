@@ -26,13 +26,13 @@ void TlvChannel::HandleMsgs()
 
 ChannelHandleResult TlvChannel::HandleSocketRead()
 {
-    Msg msg(8 * 1024); // TODO 这里每次都要申请一次内存，是否有优化的空间
+    Msg msg(8 * 1024);
     int ret = read(this->m_fd, msg.buf, msg.maxLen);
     if (ret > 0) {
         msg.len = ret;
         m_msgManger.PutRawMsg(msg);
         m_msgManger.ParseRawMsg();
-        // HandleMsgs();
+        HandleMsgs();
     } else {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             FreeMsg(msg);
