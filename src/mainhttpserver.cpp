@@ -56,7 +56,7 @@ void ViewVideo(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, Ht
 
 void ViewVideo1Mp4(const HttpServerInfo *httpServerInfo, const HttpRequest &resq, HttpResponse &response)
 {
-    std::string filePath =  httpServerInfo->sourceDir +  "/video/480_1.mp4";
+    std::string filePath =  httpServerInfo->sourceDir +  "/video/3.mp4";
 
     if (response.SetSendFile(filePath) == false) {
         response.SetStatus(HTTPRES_CODE_SERVER_ERROR);
