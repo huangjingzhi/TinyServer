@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "Logger.h"
 
 TlvChannel::TlvChannel(int fd, App *app) : Channel(fd), m_app(app)
 {
@@ -18,11 +19,9 @@ ChannelHandleResult TlvChannel::HandleSocketError()
 
 void TlvChannel::HandleMsgs()
 {
-    auto msgs = m_msgManger.GetAllMsg();
-    for (auto &msg : msgs) {
-        // 此处也可以通过 m_app 调用上层框架处理 msgs
-    }
+    m_app->Update(this);
 }
+
 
 ChannelHandleResult TlvChannel::HandleSocketRead()
 {
@@ -32,6 +31,7 @@ ChannelHandleResult TlvChannel::HandleSocketRead()
         msg.len = ret;
         m_msgManger.PutRawMsg(msg);
         m_msgManger.ParseRawMsg();
+
         HandleMsgs();
     } else {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -48,6 +48,10 @@ ChannelHandleResult TlvChannel::HandleSocketRead()
 
 ChannelHandleResult TlvChannel::HandleSocketWrite()
 {
-    std::cout << "meet out event" << std::endl;
     return ChannelHandleOK;
+}
+
+std::vector<std::vector<char>> TlvChannel::GetAllMsg()
+{
+    return std::move(m_msgManger.GetAllMsg());
 }

@@ -18,7 +18,7 @@ bool RawMsgManager::Empty() {
 
 void RawMsgManager::PutRawMsg(Msg &rawMsg)
 {
-    m_rawMsgbuf.insert(m_rawMsgbuf.begin(), rawMsg.buf, rawMsg.buf + rawMsg.len);
+    m_rawMsgbuf.insert(m_rawMsgbuf.end(), rawMsg.buf, rawMsg.buf + rawMsg.len);
 }
 
 std::vector<char> RawMsgManager::GetOneMsg()
@@ -40,11 +40,8 @@ bool RawMsgManager::ParseRawMsg()
 
     msgLen = ntohl(msgLen);
     if (msgLen > MSG_MAX_LEN) {
-        std::cout << msgLen << " is out of range by the len of msg." << std::endl;
-        // TODO: msgLen 异常，应该关闭soeck, 继续处理会处于繁忙，结束不掉
         return false;
     }
-
 
     if ((msgLen + headLen) > m_rawMsgbuf.size()) {
         return false;

@@ -1,14 +1,13 @@
+#include "TlvServer.h"
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main()
+{
 
-// #include <iostream>
-// #include "Channel.h"
-// #include "ConnectManage.h"
-// #include "TlvChannel.h"
-// using namespace std;
-
-// int main()
-// {
-//     ConnectManage<TlvChannel> conManager{(int)20000, (int)2, (int)2};
-//     conManager.Init();
-//     conManager.JoinThreads();
-//     return 0;
-// }
+    signal(SIGFPE, SIG_IGN);
+    
+    TlvServer tlvServer(9000, 1, 1024);
+    tlvServer.Start();
+    tlvServer.JoinThreads();
+}
