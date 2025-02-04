@@ -21,7 +21,6 @@ template <typename T> // todo: 考虑一下：这里可以让APP提供一个构�
 class ConnectManage
 {
 private:
-    /* data */
     int m_port;
     int m_serverFd;
     std::thread m_selfThread;
@@ -32,7 +31,7 @@ private:
     std::mutex m_isInitMutex;
     
     App *m_app;
-    /* private function */
+
     bool InitListenSocket();
     void SetInitState(bool isInit);
 

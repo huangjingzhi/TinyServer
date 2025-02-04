@@ -20,7 +20,6 @@ file(GLOB_RECURSE SRC_ALL_CPP_BASE
 
 set(SOURCES
     ${SRC_ALL_CPP_BASE}
-    mainhttpserver.cpp
     maintlvmsg.cpp
 )
 

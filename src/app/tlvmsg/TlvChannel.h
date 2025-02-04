@@ -17,6 +17,7 @@ public:
     ChannelHandleResult HandleSocketRead() override;
     ChannelHandleResult HandleSocketWrite() override;
     ChannelHandleResult HandleSocketError() override;
+    std::vector<std::vector<char>> GetAllMsg();
 };
 
 #endif
