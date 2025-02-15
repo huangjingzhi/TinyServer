@@ -9,6 +9,8 @@ include_directories(${PROJECT_SOURCE_DIR}/commom)
 include_directories(${PROJECT_SOURCE_DIR}/app)
 include_directories(${PROJECT_SOURCE_DIR}/app/http)
 include_directories(${PROJECT_SOURCE_DIR}/app/tlvmsg)
+include_directories(${PROJECT_SOURCE_DIR}/app/file)
+
 
 file(GLOB_RECURSE SRC_ALL_CPP_BASE
     ${PROJECT_SOURCE_DIR}/kernel/*.cpp
@@ -16,11 +18,12 @@ file(GLOB_RECURSE SRC_ALL_CPP_BASE
     ${PROJECT_SOURCE_DIR}/app/*.cpp
     ${PROJECT_SOURCE_DIR}/app/http/*.cpp
     ${PROJECT_SOURCE_DIR}/app/tlvmsg/*.cpp
+    ${PROJECT_SOURCE_DIR}/app/file/*.cpp
 )
 
 set(SOURCES
     ${SRC_ALL_CPP_BASE}
-    maintlvmsg.cpp
+    mainfileserver.cpp
 )
 
 add_compile_options(-g)
